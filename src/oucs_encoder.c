@@ -14,6 +14,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#ifdef _WIN32
+  #define strcasecmp _stricmp
+#else
+  #include <strings.h>
+#endif
 
 /* ─── Internal pending-song node ─────────────────────────────── */
 typedef struct OucsPendingSong {

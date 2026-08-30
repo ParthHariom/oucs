@@ -310,8 +310,11 @@ float oucs_fingerprint_similarity(const OucsFingerprint *a, const OucsFingerprin
     int matches = 0, total = 0;
     for (uint32_t i = 0; i < min_size; i++) {
         uint8_t diff = a->data[i] ^ b->data[i];
-        /* Count matching bits (1 = match) */
-        matches += 8 - __builtin_popcount(diff);
+        /* Count set bits (Brian Kernighan method — portable, no builtins) */
+        int set_bits = 0;
+        uint8_t tmp = diff;
+        while (tmp) { set_bits += tmp & 1; tmp >>= 1; }
+        matches += 8 - set_bits;
         total   += 8;
     }
     return total > 0 ? (float)matches / (float)total : 0.0f;

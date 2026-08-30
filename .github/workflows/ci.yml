@@ -116,13 +116,14 @@ jobs:
         shell: cmd
         run: |
           mkdir build
-          cl.exe /std:c11 /W3 /D_CRT_SECURE_NO_WARNINGS /I include ^
+          cl.exe /std:c11 /W3 /D_CRT_SECURE_NO_WARNINGS /D_USE_MATH_DEFINES /I include ^
             src\oucs_encoder.c src\oucs_decoder.c src\oucs_stream.c ^
             src\oucs_ecc.c src\oucs_crypto.c src\oucs_analysis.c ^
             src\oucs_delta.c src\oucs_history.c src\oucs_hooks.c ^
             src\oucs_network.c src\oucs_util.c ^
             cli\oucs_cli.c ^
-            /Fe:build\oucs.exe /link /out:build\oucs.exe
+            /link /OUT:build\oucs.exe
+          if errorlevel 1 exit /b 1
 
       - name: Smoke test
         shell: cmd
