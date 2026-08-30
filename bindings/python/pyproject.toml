@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oucs"
+version = "1.0.0"
+description = "Open Universal Container for Sound — Python bindings for liboucs"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["audio", "music", "container", "streaming", "oucs", "mp3", "flac"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Software Development :: Libraries",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage     = "https://github.com/ParthHariom/oucs"
+Source       = "https://github.com/ParthHariom/oucs"
+"Bug Tracker" = "https://github.com/ParthHariom/oucs/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["oucs*"]
