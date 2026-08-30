@@ -149,7 +149,7 @@ with OucsFile.open_url("https://cdn.example.com/playlist.oucs") as f:
 
 ```bash
 cd bindings/javascript
-npm install
+npm install oucs-engine
 ```
 
 ```js
@@ -276,7 +276,7 @@ Full byte-level specification: [`SPEC.md`](SPEC.md)
 C Core (liboucs)
     │
     ├── Python  ──→ ctypes/CFFI   ──→ pip install oucs
-    ├── JS      ──→ WASM (Emscripten) + Node N-API  ──→ npm install oucs
+    ├── JS      ──→ WASM (Emscripten) + Node N-API  ──→ npm install oucs-engine
     └── Java    ──→ JNI           ──→ Maven io.oucs:oucs:1.0.0
 ```
 

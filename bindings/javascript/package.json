@@ -1,29 +1,53 @@
 {
-  "name": "oucs",
+  "name": "oucs-engine",
   "version": "1.0.0",
-  "description": "Open Universal Container for Sound — JavaScript/WASM bindings",
+  "description": "Open Universal Container for Sound — JavaScript bindings for liboucs",
   "main": "src/index.js",
-  "types": "src/index.d.ts",
   "exports": {
     ".": {
-      "node": "./src/node.js",
+      "node": "./src/index.js",
       "browser": "./src/browser.js",
       "default": "./src/index.js"
     }
   },
   "scripts": {
-    "build:wasm": "emcc ../../src/*.c -I../../include -O2 -s WASM=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue'] -s EXPORTED_FUNCTIONS=['_oucs_writer_create','_oucs_writer_add_song_mem','_oucs_writer_finalize','_oucs_writer_free','_oucs_reader_open','_oucs_reader_song_count','_oucs_reader_extract_song_mem','_oucs_reader_free','_oucs_stream_open','_oucs_stream_read_chunk','_oucs_stream_seek','_oucs_stream_seek_chapter','_oucs_stream_tell','_oucs_stream_free','_oucs_version','_oucs_strerror','_malloc','_free'] -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_NAME=OucsModule -lm -o dist/oucs.js",
-    "test": "node tests/test_oucs.js",
-    "lint": "eslint src/"
+    "build:wasm": "emcc ../../src/*.c -I../../include -O2 -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME=OucsModule -s ALLOW_MEMORY_GROWTH=1 -lm -o dist/oucs.js",
+    "test": "node tests/test_oucs.js"
   },
-  "keywords": ["audio", "container", "streaming", "music", "oucs"],
+  "keywords": [
+    "audio",
+    "music",
+    "container",
+    "streaming",
+    "oucs",
+    "mp3",
+    "flac",
+    "wav",
+    "ogg",
+    "wasm",
+    "open-source"
+  ],
+  "author": "ParthHariom",
   "license": "MIT",
+  "homepage": "https://github.com/ParthHariom/oucs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/oucs-engine/oucs"
+    "url": "https://github.com/ParthHariom/oucs.git"
   },
-  "files": ["src/", "dist/", "README.md"],
-  "devDependencies": {
-    "emscripten": "^3.1.0"
+  "bugs": {
+    "url": "https://github.com/ParthHariom/oucs/issues"
+  },
+  "files": [
+    "src/",
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "@parthhariom/oucs": "^1.0.0",
+    "oucs-engine": "^1.0.0"
   }
 }
