@@ -122,12 +122,13 @@ int oucs_writer_add_song(OucsWriter *w, const char *audio_path,
     char fmt[5] = "MP3 ";
     const char *ext = strrchr(audio_path, '.');
     if (ext) {
-        if      (strcasecmp(ext, ".flac") == 0) strncpy(fmt, "FLAC", 4);
-        else if (strcasecmp(ext, ".ogg")  == 0) strncpy(fmt, "OGG ", 4);
-        else if (strcasecmp(ext, ".wav")  == 0) strncpy(fmt, "WAV ", 4);
-        else if (strcasecmp(ext, ".aac")  == 0) strncpy(fmt, "AAC ", 4);
-        else if (strcasecmp(ext, ".opus") == 0) strncpy(fmt, "OPUS", 4);
+        if      (strcasecmp(ext, ".flac") == 0) { fmt[0]='F';fmt[1]='L';fmt[2]='A';fmt[3]='C'; }
+        else if (strcasecmp(ext, ".ogg")  == 0) { fmt[0]='O';fmt[1]='G';fmt[2]='G';fmt[3]=' '; }
+        else if (strcasecmp(ext, ".wav")  == 0) { fmt[0]='W';fmt[1]='A';fmt[2]='V';fmt[3]=' '; }
+        else if (strcasecmp(ext, ".aac")  == 0) { fmt[0]='A';fmt[1]='A';fmt[2]='C';fmt[3]=' '; }
+        else if (strcasecmp(ext, ".opus") == 0) { fmt[0]='O';fmt[1]='P';fmt[2]='U';fmt[3]='S'; }
     }
+    fmt[4] = '\0';
 
     return oucs_writer_add_song_mem(w, buf, (size_t)sz, fmt, name, description, entry_out);
 }
@@ -183,8 +184,11 @@ int oucs_writer_set_lyrics(OucsWriter *w, const OucsLyrics *lyrics) {
     if (!lc->entries) { free(lc); return OUCS_ERR_NOMEM; }
     for (uint32_t i = 0; i < lyrics->count; i++) {
         lc->entries[i].timestamp_ms = lyrics->entries[i].timestamp_ms;
-        lc->entries[i].text = lyrics->entries[i].text
-            ? strdup(lyrics->entries[i].text) : NULL;
+        if (lyrics->entries[i].text) {
+            lc->entries[i].text = strdup(lyrics->entries[i].text);
+        } else {
+            lc->entries[i].text = NULL;
+        }
     }
     w->songs_tail->lyrics = lc;
     return OUCS_OK;
@@ -199,8 +203,11 @@ int oucs_writer_set_chapters(OucsWriter *w, const OucsChapters *chapters) {
     if (!cc->entries) { free(cc); return OUCS_ERR_NOMEM; }
     for (uint32_t i = 0; i < chapters->count; i++) {
         cc->entries[i].offset_ms = chapters->entries[i].offset_ms;
-        cc->entries[i].name = chapters->entries[i].name
-            ? strdup(chapters->entries[i].name) : NULL;
+        if (chapters->entries[i].name) {
+            cc->entries[i].name = strdup(chapters->entries[i].name);
+        } else {
+            cc->entries[i].name = NULL;
+        }
     }
     w->songs_tail->chapters = cc;
     return OUCS_OK;
@@ -211,8 +218,16 @@ int oucs_writer_set_accessibility(OucsWriter *w, const OucsAccessibility *acc) {
     OucsAccessibility *ac = (OucsAccessibility *)malloc(sizeof(OucsAccessibility));
     if (!ac) return OUCS_ERR_NOMEM;
     memcpy(ac->language, acc->language, 4);
-    ac->audio_description = acc->audio_description ? strdup(acc->audio_description) : NULL;
-    ac->transcript        = acc->transcript        ? strdup(acc->transcript)        : NULL;
+    if (acc->audio_description) {
+        ac->audio_description = strdup(acc->audio_description);
+    } else {
+        ac->audio_description = NULL;
+    }
+    if (acc->transcript) {
+        ac->transcript = strdup(acc->transcript);
+    } else {
+        ac->transcript = NULL;
+    }
     w->songs_tail->accessibility = ac;
     return OUCS_OK;
 }

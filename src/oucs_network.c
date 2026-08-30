@@ -34,6 +34,7 @@ extern void oucs_hooks_fire_chunk_read(const OucsHook *local_hooks, uint32_t loc
   #define OUCS_INVALID_SOCKET INVALID_SOCKET
   #define oucs_socket_close(s) closesocket(s)
 #else
+  #include <sys/types.h>
   #include <sys/socket.h>
   #include <netinet/in.h>
   #include <netdb.h>

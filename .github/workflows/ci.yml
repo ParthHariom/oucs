@@ -21,7 +21,8 @@ jobs:
         run: |
           mkdir -p build
           gcc -std=c11 -Wall -Wno-unused-function -Wno-unused-variable \
-            -Wno-implicit-function-declaration \
+            -Wno-implicit-function-declaration -Wno-stringop-truncation \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
@@ -30,7 +31,8 @@ jobs:
             cli/oucs_cli.c -lm -o build/oucs
 
           gcc -std=c11 -shared -fPIC -Wno-unused-function -Wno-unused-variable \
-            -Wno-implicit-function-declaration \
+            -Wno-implicit-function-declaration -Wno-stringop-truncation \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
@@ -41,7 +43,8 @@ jobs:
       - name: Build & run tests
         run: |
           gcc -std=c11 -Wno-unused-function -Wno-unused-variable \
-            -Wno-implicit-function-declaration \
+            -Wno-implicit-function-declaration -Wno-stringop-truncation \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
@@ -74,6 +77,8 @@ jobs:
         run: |
           mkdir -p build
           cc -std=c11 -Wall -Wno-unused-function -Wno-unused-variable \
+            -Wno-implicit-function-declaration \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
@@ -82,6 +87,8 @@ jobs:
             cli/oucs_cli.c -lm -o build/oucs
 
           cc -std=c11 -shared -fPIC -Wno-unused-function -Wno-unused-variable \
+            -Wno-implicit-function-declaration \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
@@ -92,6 +99,8 @@ jobs:
       - name: Build & run tests
         run: |
           cc -std=c11 -Wno-unused-function -Wno-unused-variable \
+            -Wno-implicit-function-declaration \
+            -D_POSIX_C_SOURCE=200112L \
             -I include \
             src/oucs_encoder.c src/oucs_decoder.c src/oucs_stream.c \
             src/oucs_ecc.c src/oucs_crypto.c src/oucs_analysis.c \
