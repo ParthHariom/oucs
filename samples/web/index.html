@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OUCS Web Player</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #1a1a2e;
+      --card:      #16213e;
+      --accent:    #e94560;
+      --accent2:   #0f3460;
+      --text:      #eaeaea;
+      --muted:     #888;
+      --radius:    12px;
+      --font:      'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    header {
+      width: 100%;
+      background: var(--surface);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--accent2);
+    }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .logo span { color: var(--text); }
+    .tagline { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── Main layout ─────────────────────────────────────── */
+    main {
+      width: 100%;
+      max-width: 900px;
+      padding: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Drop zone ───────────────────────────────────────── */
+    #drop-zone {
+      border: 2px dashed var(--accent2);
+      border-radius: var(--radius);
+      padding: 48px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(233, 69, 96, 0.05);
+    }
+    #drop-zone .icon { font-size: 3rem; margin-bottom: 12px; }
+    #drop-zone p { color: var(--muted); }
+    #drop-zone strong { color: var(--accent); cursor: pointer; }
+
+    /* ── Container info ─────────────────────────────────── */
+    #container-info {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: none;
+    }
+    .container-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    #container-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--accent2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .container-text h2 { font-size: 1.2rem; margin-bottom: 4px; }
+    .container-text p  { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Song list ───────────────────────────────────────── */
+    #song-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .song-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .song-card:hover  { border-color: var(--accent2); }
+    .song-card.active { border-color: var(--accent); background: rgba(233,69,96,0.08); }
+
+    .song-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      color: var(--muted);
+    }
+    .song-card.active .song-num { background: var(--accent); color: white; }
+
+    .song-info { flex: 1; min-width: 0; }
+    .song-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .song-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .song-tags { display: flex; gap: 6px; flex-shrink: 0; }
+    .tag {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--accent2);
+      color: var(--muted);
+    }
+    .tag.enc { background: rgba(233,69,96,0.2); color: var(--accent); }
+
+    /* ── Player bar ──────────────────────────────────────── */
+    #player-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--accent2);
+      padding: 16px 32px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .player-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #now-playing-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .ctrl-btn {
+      background: none;
+      border: 1px solid var(--accent2);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: var(--text);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .ctrl-btn:hover { background: var(--accent); border-color: var(--accent); }
+    .ctrl-btn.primary {
+      width: 48px;
+      height: 48px;
+      background: var(--accent);
+      border-color: var(--accent);
+      font-size: 1.3rem;
+    }
+
+    /* ── Progress bar ────────────────────────────────────── */
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    progress {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      appearance: none;
+      cursor: pointer;
+    }
+    progress::-webkit-progress-bar   { background: var(--accent2); border-radius: 2px; }
+    progress::-webkit-progress-value { background: var(--accent);  border-radius: 2px; }
+
+    /* ── Waveform canvas ─────────────────────────────────── */
+    #waveform-canvas {
+      width: 100%;
+      height: 48px;
+      border-radius: 4px;
+      background: rgba(15,52,96,0.3);
+    }
+
+    /* ── Status bar ──────────────────────────────────────── */
+    #status {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: 12px 16px; }
+      .song-tags { display: none; }
+      #player-bar { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">OUCS<span> Player</span></div>
+    <div class="tagline">Open Universal Container for Sound</div>
+  </div>
+</header>
+
+<main>
+  <!-- Drop zone -->
+  <div id="drop-zone">
+    <div class="icon">🎵</div>
+    <p>Drop a <code>.oucs</code> file here or <strong onclick="document.getElementById('file-input').click()">browse</strong></p>
+    <input type="file" id="file-input" accept=".oucs" style="display:none" />
+  </div>
+
+  <!-- Container info -->
+  <div id="container-info">
+    <div class="container-header">
+      <div id="container-logo">🎵</div>
+      <div class="container-text">
+        <h2 id="container-name">My Playlist</h2>
+        <p id="container-desc"></p>
+        <p id="container-stats" style="margin-top:4px"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Song list -->
+  <div id="song-list"></div>
+
+  <div id="status">Load a .oucs file to begin</div>
+</main>
+
+<!-- Player bar -->
+<div id="player-bar">
+  <canvas id="waveform-canvas"></canvas>
+  <div class="player-top">
+    <div class="controls">
+      <button class="ctrl-btn" id="btn-prev" title="Previous">⏮</button>
+      <button class="ctrl-btn primary" id="btn-play" title="Play/Pause">▶</button>
+      <button class="ctrl-btn" id="btn-next" title="Next">⏭</button>
+    </div>
+    <div id="now-playing-name">—</div>
+  </div>
+  <div class="progress-wrap">
+    <span id="time-cur">0:00</span>
+    <progress id="progress-bar" value="0" max="100"></progress>
+    <span id="time-dur">0:00</span>
+  </div>
+</div>
+
+<!-- WASM module (built by: npm run build:wasm) -->
+<!-- <script src="../../bindings/javascript/dist/oucs.js"></script> -->
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────
+
+const state = {
+  songs: [],
+  currentIndex: -1,
+  isPlaying: false,
+  audioContext: null,
+  sourceNode: null,
+  totalBytesStreamed: 0,
+};
+
+// ── UI helpers ─────────────────────────────────────────────────
+
+function $(id) { return document.getElementById(id); }
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+}
+
+function setStatus(msg) { $('status').textContent = msg; }
+
+function renderSongCard(song, index) {
+  const el = document.createElement('div');
+  el.className = 'song-card';
+  el.dataset.index = index;
+
+  const moodMap = { 1:'Happy', 2:'Sad', 4:'Energetic', 8:'Calm', 16:'Romantic', 32:'Angry' };
+  const mood = Object.entries(moodMap)
+    .filter(([k]) => (song.moodFlags & Number(k)) !== 0)
+    .map(([,v]) => v).join(', ') || '';
+
+  const keyNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const key = song.musicalKey < 12 ? keyNames[song.musicalKey] : '';
+
+  el.innerHTML = `
+    <div class="song-num">${index + 1}</div>
+    <div class="song-info">
+      <div class="song-name">${song.name || 'Untitled'}</div>
+      <div class="song-meta">
+        ${song.audioFormat || 'MP3'} · ${formatTime(song.durationMs || 0)}
+        ${song.bpm ? ` · ${song.bpm.toFixed(1)} BPM` : ''}
+        ${key ? ` · Key: ${key}` : ''}
+        ${mood ? ` · ${mood}` : ''}
+      </div>
+    </div>
+    <div class="song-tags">
+      ${song.encrypted ? '<span class="tag enc">🔒 Encrypted</span>' : ''}
+      ${song.hasLyrics ? '<span class="tag">Lyrics</span>' : ''}
+      ${song.hasBpm ? `<span class="tag">${song.bpm?.toFixed(0)} BPM</span>` : ''}
+    </div>
+  `;
+
+  el.addEventListener('click', () => loadSong(index));
+  return el;
+}
+
+// ── File loading ───────────────────────────────────────────────
+
+async function loadOucsFile(file) {
+  setStatus(`Loading ${file.name}…`);
+  try {
+    const buffer = await file.arrayBuffer();
+    parseOucsBuffer(buffer, file.name);
+  } catch (e) {
+    setStatus(`Error: ${e.message}`);
+    console.error(e);
+  }
+}
+
+function parseOucsBuffer(buffer, filename) {
+  /**
+   * Parse .oucs binary format directly in JS.
+   * This is a pure-JS fallback parser for the WASM-less demo.
+   * In production, the WASM module handles this.
+   */
+  const view = new DataView(buffer);
+  const decoder = new TextDecoder('utf-8');
+
+  // Verify magic "OUCS"
+  const magic = decoder.decode(new Uint8Array(buffer, 0, 4));
+  if (magic !== 'OUCS') {
+    setStatus('Error: Not a valid .oucs file (magic bytes mismatch)');
+    return;
+  }
+
+  const versionMajor = view.getUint8(4);
+  const songCount    = view.getUint32(8, true);
+  const metaOffset   = Number(view.getBigUint64(12, true));
+  const indexOffset  = Number(view.getBigUint64(20, true));
+
+  // Read container metadata
+  let theme = '', description = '';
+  if (metaOffset > 0 && metaOffset < buffer.byteLength) {
+    theme       = readCString(buffer, metaOffset, 256);
+    description = readCString(buffer, metaOffset + 256, 1024);
+  }
+
+  // Read index entries
+  const songs = [];
+  const INDEX_ENTRY = 512;
+  for (let i = 0; i < songCount; i++) {
+    const base = indexOffset + i * INDEX_ENTRY;
+    if (base + INDEX_ENTRY > buffer.byteLength) break;
+
+    const uuid        = readHexBytes(buffer, base, 16);
+    const name        = readCString(buffer, base + 16, 64);
+    const desc        = readCString(buffer, base + 80, 256);
+    const byteOffset  = Number(view.getBigUint64(base + 336, true));
+    const byteSize    = Number(view.getBigUint64(base + 344, true));
+    const fmtBytes    = new Uint8Array(buffer, base + 352, 4);
+    const audioFormat = decoder.decode(fmtBytes).replace(/\0/g, '').trim();
+    const crc32       = view.getUint32(base + 356, true);
+    const bpm         = view.getFloat32(base + 436, true);
+    const musicalKey  = view.getUint8(base + 440);
+    const moodFlags   = view.getUint8(base + 441);
+    const durationMs  = view.getUint32(base + 475, true);
+    const encFlag     = view.getUint8(base + 462);
+
+    songs.push({
+      index: i, uuid, name: name || `Song ${i}`, description: desc,
+      byteOffset, byteSize, audioFormat, crc32, bpm, musicalKey,
+      moodFlags, durationMs, encrypted: encFlag === 1,
+      hasLyrics: view.getBigUint64(base + 404, true) > 0n,
+      rawBuffer: buffer,
+    });
+  }
+
+  state.songs = songs;
+  renderPlaylist(theme, description, songs, filename);
+}
+
+function readCString(buffer, offset, maxLen) {
+  const bytes = new Uint8Array(buffer, offset, maxLen);
+  const end   = bytes.indexOf(0);
+  return new TextDecoder().decode(bytes.slice(0, end >= 0 ? end : maxLen)).trim();
+}
+
+function readHexBytes(buffer, offset, len) {
+  return Array.from(new Uint8Array(buffer, offset, len))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function renderPlaylist(theme, description, songs, filename) {
+  $('container-name').textContent = theme || filename || 'Playlist';
+  $('container-desc').textContent = description || '';
+  $('container-stats').textContent = `${songs.length} songs`;
+  $('container-info').style.display = 'block';
+  $('drop-zone').style.display = 'none';
+
+  const list = $('song-list');
+  list.innerHTML = '';
+  songs.forEach((song, i) => list.appendChild(renderSongCard(song, i)));
+  setStatus(`Loaded ${songs.length} song(s). Click a song to play.`);
+}
+
+// ── Playback ───────────────────────────────────────────────────
+
+async function loadSong(index) {
+  const song = state.songs[index];
+  if (!song) return;
+
+  // Highlight active card
+  document.querySelectorAll('.song-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`[data-index="${index}"]`);
+  if (card) card.classList.add('active');
+
+  state.currentIndex = index;
+  $('now-playing-name').textContent = song.name || `Song ${index}`;
+  $('player-bar').style.display = 'flex';
+  $('btn-play').textContent = '⏸';
+  state.isPlaying = true;
+
+  setStatus(`Streaming "${song.name}"… (${(song.byteSize / 1024).toFixed(1)} KB)`);
+
+  // Extract song bytes from buffer and play via Web Audio API
+  if (!song.encrypted) {
+    await streamSong(song);
+  } else {
+    setStatus(`"${song.name}" is encrypted. Password required.`);
+  }
+}
+
+async function streamSong(song) {
+  if (!state.audioContext) {
+    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  // Read audio bytes from the .oucs buffer (already in memory from file load)
+  const rawAudio = new Uint8Array(song.rawBuffer, song.byteOffset, song.byteSize);
+
+  // Update waveform canvas during "streaming" simulation
+  const canvas   = $('waveform-canvas');
+  const ctx      = canvas.getContext('2d');
+  const W = canvas.width  = canvas.offsetWidth;
+  const H = canvas.height = canvas.offsetHeight;
+
+  const chunkSize = 4096;
+  const numChunks = Math.ceil(rawAudio.length / chunkSize);
+  const waveData  = [];
+
+  for (let c = 0; c < numChunks; c++) {
+    const start = c * chunkSize;
+    const end   = Math.min(start + chunkSize, rawAudio.length);
+    const chunk = rawAudio.slice(start, end);
+
+    // Compute RMS
+    let sum = 0;
+    for (let i = 0; i + 1 < chunk.length; i += 2) {
+      const s = ((chunk[i + 1] << 8) | chunk[i]) / 32768.0;
+      sum += s * s;
+    }
+    const rms = Math.sqrt(sum / (chunk.length / 2));
+    waveData.push(rms);
+
+    // Update progress
+    const pct = (c / numChunks) * 100;
+    $('progress-bar').value = pct;
+
+    // Render waveform
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0f3460';
+    ctx.fillRect(0, 0, W, H);
+
+    const barW = W / waveData.length;
+    for (let i = 0; i < waveData.length; i++) {
+      const h = waveData[i] * H;
+      ctx.fillStyle = i === waveData.length - 1 ? '#e94560' : '#0f6460';
+      ctx.fillRect(i * barW, (H - h) / 2, barW - 1, h);
+    }
+
+    // Throttle to simulate real streaming
+    if (c % 8 === 0) await sleep(1);
+  }
+
+  $('progress-bar').value = 100;
+
+  // Attempt Web Audio decode (works for mp3/ogg/flac in browser)
+  try {
+    const audioBuf = await state.audioContext.decodeAudioData(rawAudio.buffer.slice(
+      song.byteOffset, song.byteOffset + song.byteSize
+    ));
+    const source = state.audioContext.createBufferSource();
+    source.buffer = audioBuf;
+    source.connect(state.audioContext.destination);
+    source.start(0);
+    state.sourceNode = source;
+    setStatus(`Playing "${song.name}" via Web Audio API`);
+  } catch (e) {
+    setStatus(`"${song.name}" streamed (${(song.byteSize / 1024).toFixed(1)} KB). Audio decode: ${e.message}`);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Controls ───────────────────────────────────────────────────
+
+$('btn-play').addEventListener('click', () => {
+  if (state.currentIndex < 0 && state.songs.length > 0) {
+    loadSong(0);
+  } else if (state.audioContext) {
+    if (state.audioContext.state === 'suspended') {
+      state.audioContext.resume();
+      $('btn-play').textContent = '⏸';
+    } else {
+      state.audioContext.suspend();
+      $('btn-play').textContent = '▶';
+    }
+  }
+});
+
+$('btn-prev').addEventListener('click', () => {
+  if (state.currentIndex > 0) loadSong(state.currentIndex - 1);
+});
+
+$('btn-next').addEventListener('click', () => {
+  if (state.currentIndex < state.songs.length - 1)
+    loadSong(state.currentIndex + 1);
+});
+
+// ── Drop zone ──────────────────────────────────────────────────
+
+const dropZone = $('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadOucsFile(file);
+});
+
+$('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadOucsFile(file);
+});
+</script>
+
+</body>
+</html>

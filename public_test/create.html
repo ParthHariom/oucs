@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OUCS Creator — Create .oucs File</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#08080f;--surface:#10101c;--card:#181826;--border:#252538;
+      --accent:#7c5cfc;--accent2:#e94560;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;
+      --text:#f0f0f8;--muted:#6060a0;--radius:12px;
+    }
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh}
+
+    /* ─ Header ─ */
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;
+      display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand-logo{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .brand-name{font-weight:700;font-size:1rem}.brand-name span{color:var(--accent)}
+    .back-btn{font-size:0.8rem;color:var(--muted);text-decoration:none;
+      border:1px solid var(--border);padding:5px 14px;border-radius:20px;transition:all 0.15s}
+    .back-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ─ Layout ─ */
+    main{max-width:860px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:20px}
+
+    /* ─ Section card ─ */
+    .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    .sec-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .sec-icon{font-size:1.1rem}
+    .sec-title{font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
+    .sec-body{padding:20px}
+
+    /* ─ Form inputs ─ */
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:560px){.form-row{grid-template-columns:1fr}}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    label{font-size:0.75rem;color:var(--muted);font-weight:600;letter-spacing:0.3px}
+    input[type=text],input[type=url],textarea{
+      background:var(--card);border:1px solid var(--border);border-radius:8px;
+      color:var(--text);padding:9px 12px;font-size:0.85rem;font-family:inherit;
+      outline:none;transition:border-color 0.15s;width:100%
+    }
+    input[type=text]:focus,input[type=url]:focus,textarea:focus{border-color:var(--accent)}
+    textarea{resize:vertical;min-height:70px}
+
+    /* ─ Logo upload ─ */
+    .logo-upload{display:flex;align-items:center;gap:14px}
+    #logo-preview{width:56px;height:56px;border-radius:10px;background:var(--card);
+      border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+      font-size:1.6rem;overflow:hidden;flex-shrink:0;cursor:pointer}
+    #logo-preview img{width:100%;height:100%;object-fit:cover}
+    .logo-info{font-size:0.78rem;color:var(--muted);line-height:1.6}
+    .logo-info strong{color:var(--accent);cursor:pointer}
+
+    /* ─ Drop zone ─ */
+    #audio-drop{
+      border:2px dashed var(--border);border-radius:var(--radius);padding:36px 20px;
+      text-align:center;cursor:pointer;transition:all 0.2s;
+    }
+    #audio-drop:hover,#audio-drop.drag-over{border-color:var(--accent);background:rgba(124,92,252,0.05)}
+    #audio-drop.has-files{display:none}
+    .dz-icon{font-size:2.2rem;margin-bottom:10px}
+    .dz-title{font-weight:600;margin-bottom:5px}
+    .dz-sub{color:var(--muted);font-size:0.8rem}
+    .dz-sub strong{color:var(--accent);cursor:pointer}
+    .fmt-row{display:flex;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+    .fmt{font-size:0.68rem;padding:2px 9px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--muted)}
+
+    /* ─ Song list ─ */
+    #song-table{display:flex;flex-direction:column;gap:0}
+    .song-item{
+      display:grid;grid-template-columns:36px 1fr auto auto;align-items:center;gap:12px;
+      padding:12px 16px;border-bottom:1px solid var(--border);
+    }
+    .song-item:last-child{border-bottom:none}
+    .si-num{width:28px;height:28px;border-radius:50%;background:var(--accent);
+      color:white;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0}
+    .si-info{min-width:0}
+    .si-name{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .si-meta{font-size:0.72rem;color:var(--muted);margin-top:2px}
+    .si-actions{display:flex;gap:6px;flex-shrink:0}
+    .si-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;
+      font-size:0.72rem;color:var(--muted);cursor:pointer;transition:all 0.15s}
+    .si-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+    .si-btn.edit:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ─ Add more btn ─ */
+    .add-more-row{padding:12px 16px;border-top:1px solid var(--border)}
+    .add-more-btn{
+      width:100%;padding:9px;border:1px dashed var(--border);border-radius:8px;
+      background:none;color:var(--muted);cursor:pointer;font-size:0.82rem;transition:all 0.15s
+    }
+    .add-more-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ─ Per-song meta editor ─ */
+    #song-editor{
+      display:none;background:var(--card);border:1px solid var(--accent);
+      border-radius:var(--radius);padding:18px 20px;
+    }
+    .se-title{font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:14px}
+
+    /* ─ Export button ─ */
+    .export-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+    #export-btn{
+      padding:13px 48px;border-radius:30px;border:none;font-size:0.95rem;font-weight:700;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;
+      cursor:pointer;transition:all 0.2s;
+    }
+    #export-btn:hover{opacity:0.9;transform:translateY(-2px)}
+    #export-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+    #export-status{font-size:0.82rem;color:var(--muted)}
+
+    /* ─ Progress bar ─ */
+    .progress-bar-wrap{width:100%;height:6px;background:var(--border);border-radius:3px;display:none}
+    .progress-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.3s}
+
+    /* ─ Log ─ */
+    .log-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    .log-header{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border)}
+    .log-title{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
+    .log-clear{background:none;border:none;color:var(--muted);font-size:0.72rem;cursor:pointer}
+    .log-clear:hover{color:var(--accent2)}
+    #create-log{font-family:'SF Mono','Consolas',monospace;font-size:0.75rem;padding:10px 18px;
+      max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+    .ll{display:flex;gap:8px}
+    .ll .ts{color:#444;flex-shrink:0}
+    .ll.ok  .msg{color:var(--green)}
+    .ll.err .msg{color:var(--red)}
+    .ll.inf .msg{color:var(--accent)}
+    .ll.warn .msg{color:var(--yellow)}
+
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">📦</div>
+    <div class="brand-name"><span>OUCS</span> Creator</div>
+  </div>
+  <a class="back-btn" href="index.html">← Back</a>
+</header>
+
+<main>
+
+  <!-- ── Container Metadata ──────────────────────────────────── -->
+  <div class="section">
+    <div class="sec-header">
+      <span class="sec-icon">🏷️</span>
+      <span class="sec-title">Container Metadata</span>
+    </div>
+    <div class="sec-body" style="display:flex;flex-direction:column;gap:14px">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Playlist / Theme Name *</label>
+          <input type="text" id="meta-name" placeholder="My Summer Playlist" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="meta-desc" placeholder="Best tracks of 2025" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Logo Image (optional)</label>
+          <div class="logo-upload">
+            <div id="logo-preview" onclick="document.getElementById('logo-input').click()">🎵</div>
+            <div class="logo-info">
+              Click logo to upload image<br>
+              <strong onclick="document.getElementById('logo-input').click()">Browse PNG / JPG / WEBP</strong>
+              <span id="logo-size-label"></span>
+            </div>
+          </div>
+          <input type="file" id="logo-input" accept="image/*" style="display:none"/>
+        </div>
+        <div class="form-group">
+          <label>Logo External URL (optional)</label>
+          <input type="url" id="meta-logo-url" placeholder="https://example.com/cover.png" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Add Songs ───────────────────────────────────────────── -->
+  <div class="section">
+    <div class="sec-header">
+      <span class="sec-icon">🎵</span>
+      <span class="sec-title">Add Audio Files</span>
+    </div>
+    <div class="sec-body" style="padding-bottom:0">
+
+      <div id="audio-drop">
+        <div class="dz-icon">🎶</div>
+        <div class="dz-title">Drop audio files here</div>
+        <div class="dz-sub">or <strong onclick="document.getElementById('audio-input').click()">browse files</strong> (multiple allowed)</div>
+        <div class="fmt-row">
+          <span class="fmt">MP3</span><span class="fmt">WAV</span><span class="fmt">FLAC</span>
+          <span class="fmt">OGG</span><span class="fmt">AAC</span><span class="fmt">OPUS</span><span class="fmt">M4A</span>
+        </div>
+        <input type="file" id="audio-input" accept="audio/*" multiple style="display:none"/>
+      </div>
+
+      <div id="song-table"></div>
+
+      <div class="add-more-row" id="add-more-row" style="display:none">
+        <button class="add-more-btn" onclick="document.getElementById('audio-input').click()">+ Add More Songs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Per-song editor ─────────────────────────────────────── -->
+  <div id="song-editor">
+    <div class="se-title">✏️ Edit Song: <span id="se-song-name">—</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Song Name</label>
+          <input type="text" id="se-name" placeholder="Track name"/>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="se-desc" placeholder="Optional description"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="si-btn" onclick="closeEditor()">Cancel</button>
+        <button class="si-btn edit" onclick="saveEditor()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Export ──────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="sec-header">
+      <span class="sec-icon">💾</span>
+      <span class="sec-title">Export .oucs File</span>
+    </div>
+    <div class="sec-body">
+      <div class="export-wrap">
+        <div class="progress-bar-wrap" id="progress-wrap">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <button id="export-btn" onclick="exportOucs()" disabled>Download .oucs File</button>
+        <div id="export-status">Add at least one song to export</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Log ────────────────────────────────────────────────── -->
+  <div class="log-panel">
+    <div class="log-header">
+      <span class="log-title">Creator Log</span>
+      <button class="log-clear" onclick="$('create-log').innerHTML=''">Clear</button>
+    </div>
+    <div id="create-log"></div>
+  </div>
+
+</main>
+
+<script>
+'use strict';
+
+/* ── Globals ─────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+let songs = [];        // [{file, name, desc, arrayBuffer}]
+let logoBytes = null;
+let editingIdx = -1;
+
+/* ── Log ─────────────────────────────────────────────────────── */
+function log(msg, type='inf') {
+  const el  = $('create-log');
+  const now = new Date().toLocaleTimeString('en-US',{hour12:false});
+  const d   = document.createElement('div');
+  d.className = `ll ${type}`;
+  d.innerHTML = `<span class="ts">[${now}]</span><span class="msg">${msg}</span>`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+/* ── Utils ───────────────────────────────────────────────────── */
+function fmtBytes(n){
+  if(n>=1048576) return (n/1048576).toFixed(2)+' MB';
+  if(n>=1024)    return (n/1024).toFixed(1)+' KB';
+  return n+' B';
+}
+function sanitize(s){ return s.replace(/[<>&"']/g,'') }
+function guessFormat(file){
+  const e = file.name.split('.').pop().toUpperCase();
+  const MAP = {MP3:'MP3 ',WAV:'WAV ',FLAC:'FLAC',OGG:'OGG ',AAC:'AAC ',OPUS:'OPUS',M4A:'AAC '};
+  return MAP[e] || 'MP3 ';
+}
+
+/* ── Logo ────────────────────────────────────────────────────── */
+$('logo-input').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoBytes = new Uint8Array(ev.target.result);
+    const blob = new Blob([logoBytes],{type:f.type});
+    $('logo-preview').innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="logo"/>`;
+    $('logo-size-label').textContent = ` (${fmtBytes(f.size)})`;
+    log(`Logo loaded: ${f.name} ${fmtBytes(f.size)}`, 'ok');
+  };
+  reader.readAsArrayBuffer(f);
+});
+
+/* ── Audio drop zone ─────────────────────────────────────────── */
+const dz = $('audio-drop');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e=>{
+  e.preventDefault(); dz.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+$('audio-input').addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(fileList) {
+  const added = [];
+  for (const f of fileList) {
+    if (!f.type.startsWith('audio/') && !f.name.match(/\.(mp3|wav|flac|ogg|aac|opus|m4a)$/i)) {
+      log(`Skipped: ${f.name} (not an audio file)`, 'warn');
+      continue;
+    }
+    const buf  = await f.arrayBuffer();
+    const name = f.name.replace(/\.[^.]+$/, ''); // strip extension
+    songs.push({ file: f, name, desc: '', arrayBuffer: buf, format: guessFormat(f) });
+    log(`Added: ${f.name} (${fmtBytes(f.size)}) [${guessFormat(f).trim()}]`, 'ok');
+    added.push(f.name);
+  }
+  if (added.length) {
+    renderSongs();
+    $('export-btn').disabled = false;
+    $('export-status').textContent = `${songs.length} song(s) ready to export`;
+    dz.classList.add('has-files');
+    $('add-more-row').style.display = 'block';
+  }
+}
+
+/* ── Render song list ────────────────────────────────────────── */
+function renderSongs() {
+  const table = $('song-table');
+  table.innerHTML = '';
+  songs.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'song-item';
+    row.innerHTML = `
+      <div class="si-num">${i+1}</div>
+      <div class="si-info">
+        <div class="si-name">${sanitize(s.name)}</div>
+        <div class="si-meta">${s.format.trim()} · ${fmtBytes(s.arrayBuffer.byteLength)}${s.desc ? ' · '+sanitize(s.desc) : ''}</div>
+      </div>
+      <div class="si-actions">
+        <button class="si-btn edit" onclick="openEditor(${i})">✏️ Edit</button>
+        <button class="si-btn" onclick="removeSong(${i})">✕</button>
+      </div>
+      <div></div>
+    `;
+    table.appendChild(row);
+  });
+  if (songs.length === 0) {
+    dz.classList.remove('has-files');
+    $('add-more-row').style.display = 'none';
+    $('export-btn').disabled = true;
+    $('export-status').textContent = 'Add at least one song to export';
+  }
+}
+
+function removeSong(i) {
+  log(`Removed: ${songs[i].name}`, 'warn');
+  songs.splice(i, 1);
+  renderSongs();
+  if (songs.length === 0) {
+    $('export-btn').disabled = true;
+    $('export-status').textContent = 'Add at least one song to export';
+  }
+}
+
+/* ── Per-song editor ─────────────────────────────────────────── */
+function openEditor(i) {
+  editingIdx = i;
+  $('se-song-name').textContent = songs[i].name;
+  $('se-name').value = songs[i].name;
+  $('se-desc').value = songs[i].desc;
+  $('song-editor').style.display = 'block';
+  $('se-name').focus();
+}
+function closeEditor() { $('song-editor').style.display='none'; editingIdx=-1; }
+function saveEditor() {
+  if(editingIdx<0) return;
+  songs[editingIdx].name = $('se-name').value.trim() || songs[editingIdx].name;
+  songs[editingIdx].desc = $('se-desc').value.trim();
+  log(`Updated: "${songs[editingIdx].name}"`, 'ok');
+  closeEditor(); renderSongs();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   OUCS BINARY BUILDER (pure JS)
+   Implements the .oucs format spec from SPEC.md
+────────────────────────────────────────────────────────────── */
+
+/* CRC-32 */
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let i=0;i<256;i++){
+    let c=i;
+    for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+    t[i]=c;
+  }
+  return t;
+})();
+function crc32(bytes){
+  let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c=CRC32_TABLE[(c^bytes[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+
+/* UUID v4 */
+function uuidBytes(){
+  const b=new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6]=(b[6]&0x0F)|0x40; b[8]=(b[8]&0x3F)|0x80;
+  return b;
+}
+
+/* Write helpers */
+function writeU8(arr, off, v)  { arr[off]=v&0xFF; return off+1; }
+function writeU16(arr, off, v) { arr[off]=v&0xFF; arr[off+1]=(v>>8)&0xFF; return off+2; }
+function writeU32(arr, off, v) { arr[off]=v&0xFF; arr[off+1]=(v>>8)&0xFF; arr[off+2]=(v>>16)&0xFF; arr[off+3]=(v>>24)&0xFF; return off+4; }
+function writeU64(arr, off, v) {
+  const lo=v&0xFFFFFFFF, hi=Math.floor(v/0x100000000)&0xFFFFFFFF;
+  writeU32(arr,off,lo); writeU32(arr,off+4,hi); return off+8;
+}
+function writeF32(arr, off, v) {
+  const tmp=new Float32Array(1); tmp[0]=v;
+  const bytes=new Uint8Array(tmp.buffer);
+  arr[off]=bytes[0];arr[off+1]=bytes[1];arr[off+2]=bytes[2];arr[off+3]=bytes[3];
+  return off+4;
+}
+function writeCStr(arr, off, str, maxLen) {
+  const enc=new TextEncoder().encode(str||'');
+  const len=Math.min(enc.length, maxLen-1);
+  arr.set(enc.subarray(0,len), off);
+  arr.fill(0, off+len, off+maxLen);
+  return off+maxLen;
+}
+function writeBytes(arr, off, bytes) {
+  arr.set(bytes, off); return off+bytes.length;
+}
+function align(n, boundary) { return Math.ceil(n/boundary)*boundary; }
+
+/* Main builder */
+async function buildOucs() {
+  const containerName = ($('meta-name').value.trim()  || 'My Playlist');
+  const containerDesc = ($('meta-desc').value.trim()  || '');
+  const logoUrl       = ($('meta-logo-url').value.trim() || '');
+  const createdAt     = Math.floor(Date.now()/1000);
+  const songCount     = songs.length;
+
+  log(`Building .oucs: "${containerName}" with ${songCount} song(s)…`, 'inf');
+
+  /* ── SIZES ───────────────────────────────────────────────── */
+  const HEADER_SIZE      = 44;
+  const META_NAME_MAX    = 256;
+  const META_DESC_MAX    = 1024;
+  const META_LOGO_URL_MAX= 512;
+  const INDEX_ENTRY_SIZE = 512;
+
+  /* Meta block size */
+  const logoSize       = logoBytes ? logoBytes.length : 0;
+  const metaBlockSize  = META_NAME_MAX + META_DESC_MAX + 4 + logoSize + META_LOGO_URL_MAX + 8 + 16 + 4 + 4;
+
+  /* After header: meta block, then align to 512, then index table */
+  const metaOffset     = HEADER_SIZE;
+  const afterMeta      = metaOffset + metaBlockSize;
+  const indexOffset    = align(afterMeta, 512);
+  const indexSize      = songCount * INDEX_ENTRY_SIZE;
+  const dataStart      = align(indexOffset + indexSize, 512);
+
+  /* Compute total audio data size */
+  let totalAudioSize = 0;
+  for(const s of songs) totalAudioSize += align(s.arrayBuffer.byteLength, 512);
+
+  const totalSize = dataStart + totalAudioSize;
+  log(`Total file size: ${fmtBytes(totalSize)}`, 'inf');
+
+  /* ── Allocate buffer ─────────────────────────────────────── */
+  const buf  = new Uint8Array(totalSize);
+  buf.fill(0);
+
+  /* ── File Header (44 bytes) ──────────────────────────────── */
+  let off = 0;
+  // Magic "OUCS"
+  buf[0]=0x4F;buf[1]=0x55;buf[2]=0x43;buf[3]=0x53; off=4;
+  off=writeU8(buf,off,1);   // version_major
+  off=writeU8(buf,off,0);   // version_minor
+  off=writeU8(buf,off,0);   // flags
+  off=writeU8(buf,off,0);   // reserved
+  off=writeU32(buf,off,songCount);
+  off=writeU64(buf,off,metaOffset);
+  off=writeU64(buf,off,indexOffset);
+  off=writeU64(buf,off,0);  // sync_manifest_offset
+  off=writeU64(buf,off,0);  // version_history_offset
+
+  /* ── Container Metadata Block ────────────────────────────── */
+  off=metaOffset;
+  off=writeCStr(buf,off,containerName,META_NAME_MAX);
+  off=writeCStr(buf,off,containerDesc,META_DESC_MAX);
+  off=writeU32(buf,off,logoSize);
+  if(logoSize>0){ buf.set(logoBytes,off); off+=logoSize; }
+  off=writeCStr(buf,off,logoUrl,META_LOGO_URL_MAX);
+  off=writeU64(buf,off,createdAt);
+  // author_uuid (16 bytes) + author_name (16 bytes)
+  const authorUUID=uuidBytes(); buf.set(authorUUID,off); off+=16;
+  off=writeCStr(buf,off,'',16);
+  // crc32 of meta block (placeholder — 0)
+  off=writeU32(buf,off,0);
+
+  /* ── Index Table + Song Data ──────────────────────────────── */
+  let dataOff = dataStart;
+
+  for(let i=0;i<songCount;i++){
+    const s        = songs[i];
+    const audio    = new Uint8Array(s.arrayBuffer);
+    const crc      = crc32(audio);
+    const byteOff  = dataOff;
+    const byteSize = audio.length;
+    const uuid     = uuidBytes();
+    const fmt      = s.format.padEnd(4,' ').substring(0,4);
+
+    /* Write index entry at indexOffset + i*512 */
+    let ie = indexOffset + i * INDEX_ENTRY_SIZE;
+    buf.set(uuid, ie); ie+=16;
+    ie=writeCStr(buf,ie,s.name,64);
+    ie=writeCStr(buf,ie,s.desc,256);
+    ie=writeU64(buf,ie,byteOff);
+    ie=writeU64(buf,ie,byteSize);
+    // audio_format (4 bytes)
+    for(let k=0;k<4;k++) buf[ie+k]=fmt.charCodeAt(k)||0x20; ie+=4;
+    ie=writeU32(buf,ie,crc);
+    // ecc_offset, ecc_size, waveform_offset, waveform_size, fingerprint_offset, fingerprint_size
+    // lyrics_offset, lyrics_size, chapters_offset, chapters_count, accessibility_offset
+    for(let k=0;k<8*6+4+4+4;k++) buf[ie+k]=0; ie+=8*6+4+4+4; // 64 bytes zeroed
+    // bpm (float32) = 0
+    ie=writeF32(buf,ie,0);
+    // musical_key = 255 (unknown)
+    ie=writeU8(buf,ie,255);
+    // mood_flags = 0
+    ie=writeU8(buf,ie,0);
+    // language (4 bytes)
+    buf[ie]=0x65;buf[ie+1]=0x6E;buf[ie+2]=0;buf[ie+3]=0; ie+=4; // "en"
+    // delta_ref_uuid (16 zeros)
+    for(let k=0;k<16;k++) buf[ie+k]=0; ie+=16;
+    // encryption_flag = 0
+    ie=writeU8(buf,ie,0);
+    // iv_nonce (12 zeros)
+    for(let k=0;k<12;k++) buf[ie+k]=0; ie+=12;
+    // duration_ms = 0
+    ie=writeU32(buf,ie,0);
+    // sample_rate, channels, bitrate, track_number
+    ie=writeU32(buf,ie,0);
+    ie=writeU16(buf,ie,0);
+    ie=writeU16(buf,ie,0);
+    ie=writeU8(buf,ie,i+1);
+    // reserved (24 bytes)
+    for(let k=0;k<24;k++) buf[ie+k]=0; ie+=24;
+
+    /* Write audio data at dataOff */
+    buf.set(audio, dataOff);
+    dataOff += align(byteSize, 512);
+
+    log(`  [${i}] "${s.name}" → offset=${byteOff} size=${fmtBytes(byteSize)} crc=0x${crc.toString(16).toUpperCase()}`, 'ok');
+  }
+
+  log(`✅ .oucs file built successfully (${fmtBytes(totalSize)})`, 'ok');
+  return buf;
+}
+
+/* ── Export ──────────────────────────────────────────────────── */
+async function exportOucs() {
+  if(songs.length===0){ log('No songs added','warn'); return; }
+
+  const btn = $('export-btn');
+  btn.disabled = true;
+  btn.textContent = 'Building…';
+  $('progress-wrap').style.display='block';
+  $('progress-fill').style.width='30%';
+
+  try {
+    const containerName = $('meta-name').value.trim() || 'my_playlist';
+    await new Promise(r=>setTimeout(r,10)); // let UI update
+    $('progress-fill').style.width='60%';
+
+    const buf = await buildOucs();
+    $('progress-fill').style.width='90%';
+
+    /* Trigger download */
+    const safeName = containerName.toLowerCase().replace(/[^a-z0-9_-]/g,'_');
+    const blob = new Blob([buf],{type:'application/x-oucs'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = safeName+'.oucs';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    $('progress-fill').style.width='100%';
+    $('export-status').textContent=`✅ Downloaded: ${safeName}.oucs (${fmtBytes(buf.byteLength)})`;
+    log(`✅ File downloaded: ${safeName}.oucs`, 'ok');
+    log(`Now open the Player page to test it!`, 'inf');
+
+    setTimeout(()=>{
+      $('progress-wrap').style.display='none';
+      $('progress-fill').style.width='0%';
+    },1200);
+  } catch(e) {
+    log(`❌ Build failed: ${e.message}`, 'err');
+    $('export-status').textContent='❌ Export failed: '+e.message;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Download .oucs File';
+}
+
+/* ── Init ────────────────────────────────────────────────────── */
+log('OUCS Creator ready — Add audio files to get started', 'ok');
+log('Supported: MP3, WAV, FLAC, OGG, AAC, OPUS, M4A', 'inf');
+</script>
+</body>
+</html>
