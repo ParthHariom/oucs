@@ -6,6 +6,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/ParthHariom/oucs/releases)
 [![CI](https://github.com/ParthHariom/oucs/actions/workflows/ci.yml/badge.svg)](https://github.com/ParthHariom/oucs/actions)
+[![PyPI](https://img.shields.io/pypi/v/oucs.svg)](https://pypi.org/project/oucs/)
+[![npm](https://img.shields.io/npm/v/oucs-engine.svg)](https://www.npmjs.com/package/oucs-engine)
+[![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://oucs-engine.vercel.app)
+
+> 🌐 **[Live Demo — oucs-engine.vercel.app](https://oucs-engine.vercel.app)** — Try the player & creator in your browser, no install needed.
 
 OUCS is a binary audio container format (`.oucs`) that packs multiple audio files into a single, self-describing file — with **selective unit-by-unit streaming**, embedded metadata, AES-256 encryption, Reed-Solomon error correction, and zero-dependency multi-language bindings.
 
