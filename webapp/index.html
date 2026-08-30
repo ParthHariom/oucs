@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OUCS Engine — Open Universal Container for Sound</title>
+  <meta name="description" content="Pack multiple audio files into one smart .oucs container. Stream any song without extracting the full file. AES-256 encryption, Reed-Solomon ECC, embedded metadata."/>
+  <meta property="og:title" content="OUCS Engine — Open Universal Container for Sound"/>
+  <meta property="og:description" content="Stream any song from a .oucs container without extracting the full file. Zero dependencies."/>
+  <meta property="og:type" content="website"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#07070e;--surface:#0f0f1c;--card:#161625;--border:#1e1e35;
+      --accent:#7c5cfc;--accent2:#e94560;--green:#22c55e;
+      --yellow:#f59e0b;--red:#ef4444;--cyan:#06b6d4;
+      --text:#f0f0f8;--muted:#6868a0;--radius:14px;
+      --font:'Inter',system-ui,-apple-system,sans-serif;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.6;overflow-x:hidden}
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+
+    /* ── Nav ── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,7,14,0.85);
+      backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+      padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:60px}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+    .nav-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .nav-name{font-weight:800;font-size:1.1rem}.nav-name span{color:var(--accent)}
+    .nav-links{display:flex;align-items:center;gap:8px}
+    .nav-link{font-size:0.82rem;color:var(--muted);text-decoration:none;padding:6px 14px;
+      border-radius:20px;transition:all 0.15s;border:1px solid transparent}
+    .nav-link:hover{color:var(--text);border-color:var(--border)}
+    .nav-cta{background:var(--accent);color:white!important;border-color:var(--accent)!important;font-weight:600}
+    .nav-cta:hover{background:#6b4ee8!important}
+    @media(max-width:600px){.nav-links .nav-link:not(.nav-cta){display:none}}
+
+    /* ── Hero ── */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;text-align:center;padding:80px 5% 60px;position:relative;overflow:hidden}
+    .hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;
+      background:radial-gradient(circle,rgba(124,92,252,0.12) 0%,transparent 70%);
+      top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;
+      background:rgba(124,92,252,0.12);border:1px solid rgba(124,92,252,0.3);
+      border-radius:20px;padding:5px 14px;font-size:0.78rem;color:var(--accent);
+      margin-bottom:24px;font-weight:500}
+    .hero h1{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:900;line-height:1.1;
+      margin-bottom:20px;letter-spacing:-0.02em}
+    .hero h1 .grad{background:linear-gradient(135deg,var(--accent),var(--accent2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero p{font-size:clamp(1rem,2.5vw,1.15rem);color:var(--muted);max-width:580px;
+      margin:0 auto 36px;line-height:1.7}
+    .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn{padding:12px 28px;border-radius:30px;font-size:0.9rem;font-weight:600;
+      cursor:pointer;text-decoration:none;border:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#6b4ee8);color:white;
+      box-shadow:0 4px 20px rgba(124,92,252,0.35)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(124,92,252,0.5)}
+    .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+    .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+    .hero-stats{display:flex;gap:32px;justify-content:center;margin-top:48px;flex-wrap:wrap}
+    .hstat{text-align:center}
+    .hstat .num{font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hstat .label{font-size:0.75rem;color:var(--muted);margin-top:2px}
+
+    /* ── Section ── */
+    section{padding:80px 5%;max-width:1100px;margin:0 auto}
+    .sec-label{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+      color:var(--accent);margin-bottom:10px}
+    .sec-title{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;margin-bottom:14px;letter-spacing:-0.02em}
+    .sec-sub{color:var(--muted);max-width:540px;font-size:1rem;line-height:1.7}
+
+    /* ── Why OUCS comparison ── */
+    .compare-table{width:100%;border-collapse:collapse;margin-top:32px;
+      background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+    .compare-table th{background:var(--card);padding:14px 20px;text-align:left;
+      font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .compare-table td{padding:14px 20px;border-top:1px solid var(--border);font-size:0.88rem}
+    .compare-table tr:hover td{background:rgba(124,92,252,0.04)}
+    .compare-table td:first-child{font-weight:600}
+    .compare-table .oucs-row td{color:var(--green)}
+    .compare-table .oucs-row td:first-child{color:var(--accent);font-weight:700}
+    .tick{color:var(--green)}
+    .cross{color:var(--red)}
+
+    /* ── Features grid ── */
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:36px}
+    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+      padding:22px 24px;transition:all 0.2s}
+    .feat-card:hover{border-color:rgba(124,92,252,0.4);transform:translateY(-3px)}
+    .feat-icon{font-size:1.8rem;margin-bottom:12px}
+    .feat-title{font-weight:700;font-size:0.95rem;margin-bottom:6px}
+    .feat-desc{font-size:0.82rem;color:var(--muted);line-height:1.6}
+
+    /* ── Live Demo ── */
+    #demo{padding:80px 5%;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .demo-inner{max-width:1000px;margin:0 auto}
+    .demo-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--card);
+      border-radius:10px;padding:4px;width:fit-content}
+    .demo-tab{padding:8px 20px;border-radius:7px;border:none;background:none;
+      color:var(--muted);font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.15s}
+    .demo-tab.active{background:var(--accent);color:white}
+    .demo-panel{display:none}
+    .demo-panel.active{display:block}
+
+    /* ── Drop zone ── */
+    #dz{border:2px dashed var(--border);border-radius:var(--radius);padding:44px 20px;
+      text-align:center;cursor:pointer;transition:all 0.2s;background:var(--card)}
+    #dz:hover,#dz.drag-over{border-color:var(--accent);background:rgba(124,92,252,0.06)}
+    #dz.hidden{display:none}
+    .dz-icon{font-size:2.4rem;margin-bottom:10px}
+    .dz-t{font-weight:700;margin-bottom:5px}
+    .dz-s{color:var(--muted);font-size:0.82rem}
+    .dz-s strong{color:var(--accent);cursor:pointer}
+    .fmt-row{display:flex;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+    .fmt{font-size:0.68rem;padding:2px 9px;border-radius:20px;background:var(--surface);
+      border:1px solid var(--border);color:var(--muted)}
+
+    /* ── Container card ── */
+    #container-card{display:none;background:var(--card);border:1px solid var(--border);
+      border-radius:var(--radius);overflow:hidden}
+    .cc-hdr{display:flex;align-items:center;gap:16px;padding:18px 22px;border-bottom:1px solid var(--border)}
+    #cc-logo{width:60px;height:60px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:flex;align-items:center;justify-content:center;font-size:2rem;
+      flex-shrink:0;overflow:hidden}
+    #cc-logo img{width:100%;height:100%;object-fit:cover}
+    .cc-info{flex:1;min-width:0}
+    .cc-name{font-size:1.05rem;font-weight:700;margin-bottom:3px}
+    .cc-desc{font-size:0.78rem;color:var(--muted)}
+    .cc-ct{text-align:right;flex-shrink:0}
+    .cc-ct .big{font-size:1.5rem;font-weight:800;color:var(--accent);display:block}
+    .cc-ct small{color:var(--muted);font-size:0.72rem}
+    .pills{display:flex;gap:6px;padding:12px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .pill{font-size:0.7rem;padding:3px 10px;border-radius:20px;background:var(--surface);
+      border:1px solid var(--border);color:var(--muted)}
+    .pill strong{color:var(--text)}
+    #song-list{display:flex;flex-direction:column}
+    .sr{display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:12px;
+      padding:12px 22px;border-bottom:1px solid var(--border);cursor:pointer;transition:all 0.15s}
+    .sr:last-child{border-bottom:none}
+    .sr:hover{background:rgba(124,92,252,0.05)}
+    .sr.active{background:rgba(124,92,252,0.1)}
+    .sr.playing{background:rgba(233,69,96,0.08)}
+    .sr-n{width:32px;height:32px;border-radius:50%;background:var(--surface);
+      border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+      font-size:0.72rem;color:var(--muted);flex-shrink:0;transition:all 0.2s}
+    .sr:hover .sr-n,.sr.active .sr-n{background:var(--accent);border-color:var(--accent);color:white}
+    .sr.playing .sr-n{background:var(--accent2);border-color:var(--accent2);color:white}
+    .sr-info{min-width:0}
+    .sr-name{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sr-meta{font-size:0.7rem;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+    .sr-tags{display:flex;gap:4px;flex-shrink:0}
+    .stag{font-size:0.63rem;padding:2px 7px;border-radius:20px;background:var(--surface);
+      border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+    .stag.enc{border-color:var(--yellow);color:var(--yellow)}
+    .sr-dur{font-size:0.75rem;color:var(--muted);flex-shrink:0}
+
+    /* ── Waveform ── */
+    #wv-wrap{display:none;background:var(--card);border:1px solid var(--border);
+      border-radius:var(--radius);padding:14px 18px;margin-top:12px}
+    .wv-label{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted);margin-bottom:8px}
+    #wv-canvas{width:100%;height:52px;border-radius:6px;cursor:pointer}
+
+    /* ── Info grid ── */
+    #info-wrap{display:none;background:var(--card);border:1px solid var(--border);
+      border-radius:var(--radius);padding:16px 20px;margin-top:12px}
+    .ig-title{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+      color:var(--muted);margin-bottom:12px}
+    .ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+    .ig-item label{font-size:0.66rem;color:var(--muted);display:block;margin-bottom:2px}
+    .ig-item value{font-size:0.8rem;font-weight:500;word-break:break-all}
+
+    /* ── Player bar ── */
+    #player-bar{position:fixed;bottom:0;left:0;right:0;
+      background:rgba(15,15,28,0.97);backdrop-filter:blur(28px);
+      border-top:1px solid var(--border);padding:10px 5% 14px;
+      display:none;flex-direction:column;gap:8px;z-index:200}
+    .pb-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+    .pb-song{min-width:0}
+    .pb-name{font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pb-sub{font-size:0.68rem;color:var(--muted);margin-top:1px}
+    .pb-ctrl{display:flex;gap:8px;align-items:center}
+    .pb-btn{background:none;border:1px solid var(--border);border-radius:50%;
+      width:36px;height:36px;color:var(--text);font-size:0.95rem;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+    .pb-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+    .pb-btn.primary{width:44px;height:44px;background:var(--accent2);border-color:var(--accent2);font-size:1.1rem}
+    .pb-btn.primary:hover{background:#c73250}
+    .pb-right{display:flex;align-items:center;justify-content:flex-end}
+    .pb-fmt{font-size:0.68rem;padding:2px 9px;border-radius:20px;background:var(--card);
+      border:1px solid var(--border);color:var(--muted)}
+    .pb-prog{display:flex;align-items:center;gap:10px;font-size:0.68rem;color:var(--muted)}
+    #pb-prog-bar{flex:1;height:3px;appearance:none;border-radius:2px;cursor:pointer;background:var(--border)}
+    #pb-prog-bar::-webkit-progress-bar{background:var(--border);border-radius:2px}
+    #pb-prog-bar::-webkit-progress-value{background:var(--accent2);border-radius:2px}
+
+    /* ── Creator panel ── */
+    #creator-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 20px;
+      text-align:center;cursor:pointer;transition:all 0.2s;background:var(--card)}
+    #creator-drop:hover,#creator-drop.drag-over{border-color:var(--accent);background:rgba(124,92,252,0.06)}
+    #creator-drop.hidden{display:none}
+    .cr-list{display:flex;flex-direction:column;gap:0;margin-top:0}
+    .cr-item{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;
+      padding:10px 14px;border-bottom:1px solid var(--border);font-size:0.84rem}
+    .cr-item:last-child{border-bottom:none}
+    .cr-num{width:26px;height:26px;border-radius:50%;background:var(--accent);
+      color:white;display:flex;align-items:center;justify-content:center;font-size:0.68rem;flex-shrink:0}
+    .cr-info{min-width:0}
+    .cr-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cr-size{font-size:0.7rem;color:var(--muted);margin-top:1px}
+    .cr-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px 6px}
+    .cr-del:hover{color:var(--accent2)}
+    .cr-meta{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+      padding:16px 18px;margin-top:14px;display:none;flex-direction:column;gap:10px}
+    .cr-meta.show{display:flex}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:480px){.frow{grid-template-columns:1fr}}
+    .fg label{font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;font-weight:500}
+    .fg input{width:100%;background:var(--surface);border:1px solid var(--border);
+      border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.84rem;outline:none;font-family:var(--font)}
+    .fg input:focus{border-color:var(--accent)}
+    .export-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:white;border:none;border-radius:10px;font-weight:700;font-size:0.9rem;
+      cursor:pointer;transition:all 0.2s;margin-top:14px}
+    .export-btn:hover{opacity:0.9;transform:translateY(-1px)}
+    .export-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+    .add-more{width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;
+      background:none;color:var(--muted);cursor:pointer;font-size:0.8rem;margin-top:8px;transition:all 0.15s}
+    .add-more:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ── Code tabs ── */
+    .code-tabs{display:flex;gap:4px;margin-bottom:0;background:var(--card);
+      border-radius:10px 10px 0 0;padding:8px 8px 0;border:1px solid var(--border);border-bottom:none}
+    .code-tab{padding:7px 18px;border-radius:7px 7px 0 0;border:none;background:none;
+      color:var(--muted);font-size:0.82rem;font-weight:500;cursor:pointer;transition:all 0.15s}
+    .code-tab.active{background:var(--surface);color:var(--text)}
+    pre{background:var(--surface);border:1px solid var(--border);border-radius:0 10px 10px 10px;
+      padding:20px;overflow-x:auto;font-size:0.82rem;line-height:1.7;margin-bottom:0}
+    code{font-family:'SF Mono','Fira Code','Consolas',monospace}
+    .code-panel{display:none}.code-panel.active{display:block}
+    .kw{color:#c792ea}.fn{color:#82aaff}.str{color:#c3e88d}.cm{color:#546e7a;font-style:italic}
+    .cl{color:#ffcb6b}.num{color:#f78c6c}
+
+    /* ── Install ── */
+    .install-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:28px}
+    .install-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .install-card h4{font-size:0.82rem;font-weight:600;color:var(--muted);text-transform:uppercase;
+      letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .install-cmd{background:var(--card);border:1px solid var(--border);border-radius:8px;
+      padding:10px 14px;font-family:'SF Mono','Consolas',monospace;font-size:0.82rem;
+      color:var(--green);cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+      transition:all 0.15s}
+    .install-cmd:hover{border-color:var(--accent);background:rgba(124,92,252,0.06)}
+    .copy-btn{font-size:0.8rem;color:var(--muted);border:none;background:none;cursor:pointer}
+    .copy-btn:hover{color:var(--accent)}
+    .copied{color:var(--green)!important}
+
+    /* ── Footer ── */
+    footer{background:var(--surface);border-top:1px solid var(--border);
+      padding:32px 5%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .footer-brand{font-weight:700;font-size:0.95rem}
+    .footer-brand span{color:var(--accent)}
+    .footer-links{display:flex;gap:16px}
+    .footer-links a{color:var(--muted);text-decoration:none;font-size:0.82rem;transition:color 0.15s}
+    .footer-links a:hover{color:var(--accent)}
+    .footer-right{font-size:0.78rem;color:var(--muted)}
+
+    /* ── Log ── */
+    #demo-log{font-family:'SF Mono','Consolas',monospace;font-size:0.72rem;padding:10px 14px;
+      max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;
+      background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-top:10px}
+    .ll{display:flex;gap:8px}
+    .ll .ts{color:#363650;flex-shrink:0}
+    .ll.ok .msg{color:var(--green)}.ll.err .msg{color:var(--red)}
+    .ll.inf .msg{color:var(--accent)}.ll.warn .msg{color:var(--yellow)}
+
+    /* ── Reset ── */
+    #reset-btn{display:none;background:var(--card);border:1px solid var(--border);
+      border-radius:8px;padding:6px 16px;color:var(--muted);cursor:pointer;font-size:0.78rem;
+      margin-bottom:10px;transition:all 0.15s}
+    #reset-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+
+    @media(max-width:700px){
+      .pb-top{grid-template-columns:1fr auto}.pb-right{display:none}
+      .sr{grid-template-columns:36px 1fr auto}.sr-tags{display:none}
+      .hero h1{font-size:2rem}section{padding:50px 5%}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-logo">🎵</div>
+    <div class="nav-name"><span>OUCS</span> Engine</div>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#demo">Demo</a>
+    <a class="nav-link" href="#install">Install</a>
+    <a class="nav-link nav-cta" href="https://github.com/ParthHariom/oucs" target="_blank">⭐ GitHub</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">🎵 Open Source · MIT License · v1.0.0</div>
+  <h1>Pack songs.<br><span class="grad">Stream anything.</span><br>Everywhere.</h1>
+  <p>A new binary audio container format (.oucs) that lets you stream any single song from a playlist file — without extracting everything. No server needed.</p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="#demo">▶ Try Live Demo</a>
+    <a class="btn btn-secondary" href="https://github.com/ParthHariom/oucs" target="_blank">⭐ View on GitHub</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="num">0.22%</div><div class="label">Container Overhead</div></div>
+    <div class="hstat"><div class="num">12/12</div><div class="label">Tests Passing</div></div>
+    <div class="hstat"><div class="num">4</div><div class="label">Languages</div></div>
+    <div class="hstat"><div class="num">Zero</div><div class="label">Dependencies</div></div>
+  </div>
+</div>
+
+<!-- ── Why OUCS ──────────────────────────────────────────── -->
+<section id="why" style="max-width:1100px;margin:0 auto;padding:80px 5%">
+  <div class="sec-label">Why OUCS?</div>
+  <div class="sec-title">Every other solution has a catch</div>
+  <div class="sec-sub">ZIP extracts everything. CUE needs separate files. HLS needs a server. OUCS is different.</div>
+  <table class="compare-table">
+    <thead><tr><th>Solution</th><th>Selective Stream</th><th>Encrypted</th><th>Self-describing</th><th>Offline</th><th>Zero Infra</th></tr></thead>
+    <tbody>
+      <tr><td>ZIP / TAR</td><td class="cross">✗ Full extract</td><td class="tick">✓ (weak)</td><td class="cross">✗</td><td class="tick">✓</td><td class="tick">✓</td></tr>
+      <tr><td>CUE Sheets</td><td class="cross">✗ Separate files</td><td class="cross">✗</td><td class="cross">✗</td><td class="tick">✓</td><td class="tick">✓</td></tr>
+      <tr><td>HLS / DASH</td><td class="tick">✓</td><td class="tick">✓</td><td class="cross">✗</td><td class="cross">✗</td><td class="cross">✗ Server needed</td></tr>
+      <tr><td>M3U Playlist</td><td class="cross">✗ Separate files</td><td class="cross">✗</td><td class="cross">✗</td><td class="tick">✓</td><td class="tick">✓</td></tr>
+      <tr class="oucs-row"><td>OUCS ✨</td><td class="tick">✓ Unit-by-unit</td><td class="tick">✓ AES-256</td><td class="tick">✓ Embedded</td><td class="tick">✓</td><td class="tick">✓</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────── -->
+<section id="features" style="max-width:1100px;margin:0 auto;padding:20px 5% 80px">
+  <div class="sec-label">Features</div>
+  <div class="sec-title">Everything you need. Nothing you don't.</div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">Selective Streaming</div>
+      <div class="feat-desc">Stream any song directly by byte offset. Only that song loads — device RAM stays near zero regardless of playlist size.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">AES-256-GCM Encryption</div>
+      <div class="feat-desc">Encrypt individual songs or the entire container. PBKDF2-SHA256 key derivation with 100,000 iterations. Zero external crypto deps.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🛡️</div>
+      <div class="feat-title">Reed-Solomon ECC</div>
+      <div class="feat-desc">RS(255,223) error correction per song unit. Corrupt bytes are automatically recovered on read — corruption chances near zero.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Rich Metadata</div>
+      <div class="feat-desc">BPM, musical key, mood tags, synced LRC lyrics, chapter markers, waveform preview, acoustic fingerprint — all embedded.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <div class="feat-title">HTTP Range Streaming</div>
+      <div class="feat-desc">Host a .oucs file on any CDN. Stream individual songs via HTTP Range requests — no full download, no server code needed.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔌</div>
+      <div class="feat-title">Plugin / Hook System</div>
+      <div class="feat-desc">Intercept pack, chunk-read, extract, and error events. Add custom processing — equalizer, analytics, normalization — without touching core.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔄</div>
+      <div class="feat-title">Merge & Split</div>
+      <div class="feat-desc">Combine multiple .oucs playlists into one or split them — without re-encoding a single byte of audio.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔍</div>
+      <div class="feat-title">Deduplication</div>
+      <div class="feat-desc">Same song added twice? Engine detects via CRC-32 fingerprint match and stores it once, referenced multiple times.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌍</div>
+      <div class="feat-title">Multi-language Bindings</div>
+      <div class="feat-desc">C core → Python (pip install oucs) → JavaScript WASM (npm install oucs-engine) → Java JNI (Android + Desktop). Zero runtime deps.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Live Demo ──────────────────────────────────────────── -->
+<div id="demo">
+  <div class="demo-inner">
+    <div class="sec-label">Live Demo</div>
+    <div class="sec-title" style="margin-bottom:24px">Try it right here</div>
+    <div class="demo-tabs">
+      <button class="demo-tab active" onclick="switchTab('player')">▶ Player</button>
+      <button class="demo-tab" onclick="switchTab('creator')">📦 Creator</button>
+    </div>
+
+    <!-- Player tab -->
+    <div class="demo-panel active" id="tab-player">
+      <button id="reset-btn" onclick="resetPlayer()">✕ Close file</button>
+      <div id="dz">
+        <div class="dz-icon">🎵</div>
+        <div class="dz-t">Drop a .oucs file to play</div>
+        <div class="dz-s">or <strong onclick="document.getElementById('fi').click()">browse to open</strong> — works with files from Creator tab</div>
+        <div class="fmt-row">
+          <span class="fmt">MP3</span><span class="fmt">WAV</span><span class="fmt">FLAC</span>
+          <span class="fmt">OGG</span><span class="fmt">AAC</span><span class="fmt">OPUS</span>
+        </div>
+        <input type="file" id="fi" accept=".oucs" style="display:none"/>
+      </div>
+      <div id="container-card">
+        <div class="cc-hdr">
+          <div id="cc-logo">🎵</div>
+          <div class="cc-info">
+            <div class="cc-name" id="cc-name">—</div>
+            <div class="cc-desc" id="cc-desc">—</div>
+          </div>
+          <div class="cc-ct"><span class="big" id="cc-ct">0</span><small>songs</small></div>
+        </div>
+        <div class="pills" id="pills"></div>
+        <div id="song-list"></div>
+      </div>
+      <div id="wv-wrap">
+        <div class="wv-label"><span>〰 Waveform — <strong id="wv-name">—</strong></span><span id="wv-info"></span></div>
+        <canvas id="wv-canvas"></canvas>
+      </div>
+      <div id="info-wrap">
+        <div class="ig-title">Song Details</div>
+        <div class="ig" id="ig"></div>
+      </div>
+      <div id="demo-log"></div>
+    </div>
+
+    <!-- Creator tab -->
+    <div class="demo-panel" id="tab-creator">
+      <div id="creator-drop">
+        <div class="dz-icon">🎶</div>
+        <div class="dz-t">Drop audio files to pack</div>
+        <div class="dz-s">or <strong onclick="document.getElementById('ci').click()">browse files</strong> (MP3, WAV, FLAC, OGG, AAC, OPUS, M4A)</div>
+        <input type="file" id="ci" accept="audio/*" multiple style="display:none"/>
+      </div>
+      <div id="cr-list" class="cr-list" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);display:none"></div>
+      <button class="add-more" id="add-more-btn" onclick="document.getElementById('ci').click()" style="display:none">+ Add More Songs</button>
+      <div class="cr-meta" id="cr-meta">
+        <div class="frow">
+          <div class="fg"><label>Playlist Name</label><input type="text" id="cr-name" placeholder="My Playlist" value="My Playlist"/></div>
+          <div class="fg"><label>Description</label><input type="text" id="cr-desc" placeholder="Optional description"/></div>
+        </div>
+      </div>
+      <button class="export-btn" id="exp-btn" onclick="exportOucs()" disabled>💾 Download .oucs File</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Code Examples ──────────────────────────────────────── -->
+<section style="max-width:1100px;margin:0 auto;padding:80px 5%">
+  <div class="sec-label">Code Examples</div>
+  <div class="sec-title">Works everywhere</div>
+  <div class="code-tabs">
+    <button class="code-tab active" onclick="switchCode('python')">Python</button>
+    <button class="code-tab" onclick="switchCode('js')">JavaScript</button>
+    <button class="code-tab" onclick="switchCode('java')">Java</button>
+    <button class="code-tab" onclick="switchCode('c')">C</button>
+  </div>
+  <div class="code-panel active" id="code-python"><pre><code><span class="kw">from</span> oucs <span class="kw">import</span> OucsFile
+
+<span class="cm"># Pack songs into .oucs</span>
+<span class="kw">with</span> OucsFile.<span class="fn">create</span>(<span class="str">"playlist.oucs"</span>) <span class="kw">as</span> f:
+    f.<span class="fn">set_meta</span>(theme=<span class="str">"Summer Hits"</span>, description=<span class="str">"Best tracks"</span>)
+    f.<span class="fn">add_song</span>(<span class="str">"track1.mp3"</span>, name=<span class="str">"Track One"</span>)
+    f.<span class="fn">add_song</span>(<span class="str">"track2.flac"</span>, name=<span class="str">"Track Two"</span>, password=<span class="str">"secret"</span>)
+    f.<span class="fn">save</span>()
+
+<span class="cm"># Stream song 0 — only that song loads (device load = near zero)</span>
+<span class="kw">with</span> OucsFile.<span class="fn">open</span>(<span class="str">"playlist.oucs"</span>) <span class="kw">as</span> f:
+    <span class="kw">with</span> f.<span class="fn">stream</span>(<span class="num">0</span>, chunk_size=<span class="num">4096</span>) <span class="kw">as</span> stream:
+        <span class="kw">for</span> chunk <span class="kw">in</span> stream:
+            audio_player.<span class="fn">feed</span>(chunk)
+
+<span class="cm"># URL streaming — no full download</span>
+<span class="kw">with</span> OucsFile.<span class="fn">open_url</span>(<span class="str">"https://cdn.example.com/playlist.oucs"</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> chunk <span class="kw">in</span> f.<span class="fn">stream</span>(<span class="num">0</span>):
+        player.<span class="fn">feed</span>(chunk)</code></pre></div>
+
+  <div class="code-panel" id="code-js"><pre><code><span class="kw">const</span> { OucsFile, loadModule } = <span class="fn">require</span>(<span class="str">'oucs-engine'</span>);
+
+<span class="kw">await</span> <span class="fn">loadModule</span>();
+
+<span class="cm">// Pack songs</span>
+<span class="kw">const</span> f = <span class="kw">await</span> OucsFile.<span class="fn">open</span>(<span class="str">'playlist.oucs'</span>);
+console.<span class="fn">log</span>(f.songCount + <span class="str">' songs'</span>);
+
+<span class="cm">// Stream song 0 chunk-by-chunk</span>
+<span class="kw">const</span> stream = <span class="kw">await</span> f.<span class="fn">stream</span>(<span class="num">0</span>, <span class="num">4096</span>);
+<span class="kw">for await</span> (<span class="kw">const</span> chunk <span class="kw">of</span> stream) {
+    audioPlayer.<span class="fn">feed</span>(chunk);
+}
+f.<span class="fn">close</span>();
+
+<span class="cm">// Install: npm install oucs-engine</span></code></pre></div>
+
+  <div class="code-panel" id="code-java"><pre><code><span class="cm">// Load native library</span>
+OucsEngine.<span class="fn">loadLibrary</span>();
+
+<span class="cm">// Write</span>
+<span class="kw">try</span> (OucsWriter w = OucsEngine.<span class="fn">create</span>(<span class="str">"playlist.oucs"</span>)) {
+    w.<span class="fn">setMeta</span>(<span class="str">"My Playlist"</span>, <span class="str">"Best tracks"</span>, <span class="kw">null</span>, <span class="str">""</span>);
+    w.<span class="fn">addSong</span>(<span class="str">"song1.mp3"</span>, <span class="str">"Song One"</span>, <span class="str">""</span>);
+    w.<span class="fn">save</span>();
+}
+
+<span class="cm">// Read & stream</span>
+<span class="kw">try</span> (OucsReader r = OucsEngine.<span class="fn">open</span>(<span class="str">"playlist.oucs"</span>)) {
+    <span class="kw">try</span> (OucsStream s = r.<span class="fn">stream</span>(<span class="num">0</span>, <span class="num">4096</span>)) {
+        <span class="kw">byte</span>[] chunk;
+        <span class="kw">while</span> ((chunk = s.<span class="fn">readChunk</span>()) != <span class="kw">null</span>) {
+            audioPlayer.<span class="fn">feed</span>(chunk);
+        }
+    }
+}</code></pre></div>
+
+  <div class="code-panel" id="code-c"><pre><code><span class="cm">// Pack songs into .oucs</span>
+OucsWriter *w = <span class="fn">oucs_writer_create</span>(<span class="str">"playlist.oucs"</span>, <span class="num">0</span>);
+<span class="fn">oucs_writer_add_song</span>(w, <span class="str">"track1.mp3"</span>, <span class="str">"Track One"</span>, <span class="str">""</span>, <span class="kw">NULL</span>);
+<span class="fn">oucs_writer_add_song</span>(w, <span class="str">"track2.wav"</span>, <span class="str">"Track Two"</span>, <span class="str">""</span>, <span class="kw">NULL</span>);
+<span class="fn">oucs_writer_finalize</span>(w);
+<span class="fn">oucs_writer_free</span>(w);
+
+<span class="cm">// Stream song 1 — chunk-by-chunk</span>
+OucsReader *r = <span class="fn">oucs_reader_open</span>(<span class="str">"playlist.oucs"</span>);
+OucsStream *s = <span class="fn">oucs_stream_open</span>(r, <span class="num">1</span>, <span class="num">4096</span>, <span class="kw">NULL</span>);
+
+uint8_t buf[<span class="num">4096</span>]; size_t n;
+<span class="kw">while</span> (<span class="fn">oucs_stream_read_chunk</span>(s, buf, <span class="kw">sizeof</span>(buf), &n) == OUCS_OK && n > <span class="num">0</span>) {
+    audio_player_feed(buf, n);
+}
+<span class="fn">oucs_stream_free</span>(s);
+<span class="fn">oucs_reader_free</span>(r);</code></pre></div>
+</section>
+
+<!-- ── Install ───────────────────────────────────────────── -->
+<section id="install" style="max-width:1100px;margin:0 auto;padding:0 5% 80px">
+  <div class="sec-label">Install</div>
+  <div class="sec-title">One line to get started</div>
+  <div class="install-grid">
+    <div class="install-card">
+      <h4>🐍 Python</h4>
+      <div class="install-cmd" onclick="copyCmd(this,'pip install oucs')">
+        <code>pip install oucs</code>
+        <button class="copy-btn">📋</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:8px">Requires liboucs built locally. See README.</div>
+    </div>
+    <div class="install-card">
+      <h4>🟨 JavaScript</h4>
+      <div class="install-cmd" onclick="copyCmd(this,'npm install oucs-engine')">
+        <code>npm install oucs-engine</code>
+        <button class="copy-btn">📋</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:8px">Node.js + Browser (WASM). Zero deps.</div>
+    </div>
+    <div class="install-card">
+      <h4>☕ Java / Android</h4>
+      <div class="install-cmd" onclick="copyCmd(this,'io.oucs:oucs:1.0.0')">
+        <code>io.oucs:oucs:1.0.0</code>
+        <button class="copy-btn">📋</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:8px">Maven / Gradle. JNI bindings included.</div>
+    </div>
+    <div class="install-card">
+      <h4>⚙️ C / C++</h4>
+      <div class="install-cmd" onclick="copyCmd(this,'git clone https://github.com/ParthHariom/oucs')">
+        <code>git clone github.com/ParthHariom/oucs</code>
+        <button class="copy-btn">📋</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:8px">Build with cc or CMake. Zero deps, pure C11.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────── -->
+<footer>
+  <div class="footer-brand"><span>OUCS</span> Engine v1.0.0</div>
+  <div class="footer-links">
+    <a href="https://github.com/ParthHariom/oucs" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/oucs" target="_blank">PyPI</a>
+    <a href="https://www.npmjs.com/package/oucs-engine" target="_blank">npm</a>
+    <a href="https://github.com/ParthHariom/oucs/blob/main/SPEC.md" target="_blank">Spec</a>
+    <a href="https://github.com/ParthHariom/oucs/blob/main/LICENSE" target="_blank">MIT License</a>
+  </div>
+  <div class="footer-right">Built by ParthHariom · Open Source</div>
+</footer>
+
+<!-- ── Player bar ───────────────────────────────────────── -->
+<div id="player-bar">
+  <div class="pb-top">
+    <div class="pb-song">
+      <div class="pb-name" id="pb-name">—</div>
+      <div class="pb-sub" id="pb-sub">—</div>
+    </div>
+    <div class="pb-ctrl">
+      <button class="pb-btn" id="btn-prev">⏮</button>
+      <button class="pb-btn primary" id="btn-play">▶</button>
+      <button class="pb-btn" id="btn-next">⏭</button>
+    </div>
+    <div class="pb-right"><span class="pb-fmt" id="pb-fmt">—</span></div>
+  </div>
+  <div class="pb-prog">
+    <span id="pb-t">0:00</span>
+    <progress id="pb-prog-bar" value="0" max="100"></progress>
+    <span id="pb-d">0:00</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ── Utils ─────────────────────────────────────────────── */
+const $=id=>document.getElementById(id);
+const fmtB=n=>n>=1048576?(n/1048576).toFixed(2)+' MB':n>=1024?(n/1024).toFixed(1)+' KB':n+' B';
+const fmtT=ms=>{const s=Math.floor((ms||0)/1000);return`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`};
+const cstr=(b,o,m)=>{const a=new Uint8Array(b,o,m);const e=a.indexOf(0);return new TextDecoder().decode(a.slice(0,e>=0?e:m)).trim()};
+const hx=(b,o,l)=>Array.from(new Uint8Array(b,o,l)).map(x=>x.toString(16).padStart(2,'0')).join('');
+const uuidFmt=h=>`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+const KEY=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const MOOD=[[1,'Happy'],[2,'Sad'],[4,'Energetic'],[8,'Calm'],[16,'Romantic'],[32,'Angry']];
+const moodS=f=>MOOD.filter(([v])=>f&v).map(([,n])=>n).join(', ')||'—';
+
+/* ── Tabs ──────────────────────────────────────────────── */
+function switchTab(t){
+  document.querySelectorAll('.demo-tab').forEach((b,i)=>{b.classList.toggle('active',['player','creator'][i]===t)});
+  document.querySelectorAll('.demo-panel').forEach((p,i)=>{p.classList.toggle('active',['tab-player','tab-creator'][i]==='tab-'+t)});
+}
+function switchCode(t){
+  document.querySelectorAll('.code-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.code-panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  $('code-'+t).classList.add('active');
+}
+
+/* ── Copy ──────────────────────────────────────────────── */
+function copyCmd(el,txt){
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b=el.querySelector('.copy-btn');
+    b.textContent='✓'; b.classList.add('copied');
+    setTimeout(()=>{b.textContent='📋';b.classList.remove('copied')},1500);
+  });
+}
+
+/* ── Log ───────────────────────────────────────────────── */
+function log(msg,type='inf'){
+  const el=$('demo-log'),now=new Date().toLocaleTimeString('en-US',{hour12:false});
+  const d=document.createElement('div');d.className=`ll ${type}`;
+  d.innerHTML=`<span class="ts">[${now}]</span><span class="msg">${msg}</span>`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+
+/* ── Player state ──────────────────────────────────────── */
+const S={songs:[],buf:null,idx:-1,actx:null,src:null,cbuf:null,startAt:0,pauseAt:0};
+
+/* ── Parser ────────────────────────────────────────────── */
+function parseOucs(buf,fn){
+  const v=new DataView(buf);
+  if(new TextDecoder().decode(new Uint8Array(buf,0,4))!=='OUCS'){log('❌ Not a .oucs file','err');return null}
+  const sc=v.getUint32(8,true),mo=Number(v.getBigUint64(12,true)),io=Number(v.getBigUint64(20,true));
+  log(`✅ v${v.getUint8(4)}.${v.getUint8(5)} | ${sc} songs | ${fmtB(buf.byteLength)}`,'ok');
+  let con={theme:'',desc:'',logo:null,url:'',ts:0};
+  if(mo>0&&mo<buf.byteLength){
+    con.theme=cstr(buf,mo,256);con.desc=cstr(buf,mo+256,1024);
+    const ls=v.getUint32(mo+1280,true);
+    if(ls>0&&mo+1284+ls<=buf.byteLength)con.logo=new Uint8Array(buf,mo+1284,ls).slice();
+    const uo=mo+1284+(con.logo?.length||0);
+    if(uo<buf.byteLength)con.url=cstr(buf,uo,512);
+    try{const to=mo+1284+(con.logo?.length||0)+512;if(to+8<=buf.byteLength)con.ts=Number(v.getBigUint64(to,true))}catch(_){}
+  }
+  const I=512,songs=[];
+  for(let i=0;i<sc;i++){
+    const b=io+i*I;if(b+I>buf.byteLength)break;
+    songs.push({
+      i,uuid:uuidFmt(hx(buf,b,16)),name:cstr(buf,b+16,64)||`Song ${i}`,desc:cstr(buf,b+80,256),
+      offset:Number(v.getBigUint64(b+336,true)),size:Number(v.getBigUint64(b+344,true)),
+      fmt:cstr(buf,b+352,4),crc:v.getUint32(b+356,true),
+      wvOff:Number(v.getBigUint64(b+376,true)),wvSz:Number(v.getBigUint64(b+384,true)),
+      lyrOff:Number(v.getBigUint64(b+404,true)),
+      chCt:v.getUint32(b+424,true),
+      bpm:v.getFloat32(b+436,true),key:v.getUint8(b+440),mood:v.getUint8(b+441),
+      enc:v.getUint8(b+462)===1,dur:v.getUint32(b+475,true),
+      sr:v.getUint32(b+479,true),ch:v.getUint16(b+483,true),br:v.getUint16(b+485,true),
+      tn:v.getUint8(b+487),
+      hasWv:Number(v.getBigUint64(b+376,true))>0,hasLyr:Number(v.getBigUint64(b+404,true))>0,
+      hasCh:v.getUint32(b+424,true)>0,
+    });
+  }
+  return{con,songs};
+}
+
+function renderPlaylist(data,fn){
+  const{con,songs}=data;
+  $('cc-name').textContent=con.theme||fn;
+  $('cc-desc').textContent=con.desc||'';
+  $('cc-ct').textContent=songs.length;
+  if(con.logo){const u=URL.createObjectURL(new Blob([con.logo]));$('cc-logo').innerHTML=`<img src="${u}" alt="logo"/>`}
+  const pills=$('pills');pills.innerHTML='';
+  const pill=(icon,k,v)=>{const p=document.createElement('div');p.className='pill';p.innerHTML=`${icon} ${k}: <strong>${v}</strong>`;pills.appendChild(p)};
+  pill('📦','Size',fmtB(S.buf.byteLength));pill('🎵','Songs',songs.length);
+  if(songs.filter(s=>s.enc).length)pill('🔒','Enc',songs.filter(s=>s.enc).length);
+  if(songs.filter(s=>s.hasLyr).length)pill('📝','Lyrics',songs.filter(s=>s.hasLyr).length);
+  if(songs.filter(s=>s.hasCh).length)pill('📑','Chapters',songs.filter(s=>s.hasCh).length);
+  if(songs.filter(s=>s.hasWv).length)pill('〰','Waveform',songs.filter(s=>s.hasWv).length);
+  if(con.ts)pill('📅','Created',new Date(con.ts*1000).toLocaleDateString());
+  const list=$('song-list');list.innerHTML='';
+  songs.forEach(s=>{
+    const row=document.createElement('div');row.className='sr';row.dataset.i=s.i;
+    row.innerHTML=`<div class="sr-n">${s.i+1}</div>
+    <div class="sr-info"><div class="sr-name">${s.name}</div>
+    <div class="sr-meta"><span>🎼 ${s.fmt||'—'}</span>${s.sr?`<span>📻 ${(s.sr/1000).toFixed(1)}kHz</span>`:''
+    }${s.bpm>0?`<span>🥁 ${s.bpm.toFixed(1)}</span>`:''
+    }${s.key<12?`<span>🎹 ${KEY[s.key]}</span>`:''
+    }<span>💾 ${fmtB(s.size)}</span></div></div>
+    <div class="sr-tags">${s.enc?'<span class="stag enc">🔒</span>':''
+    }${s.hasLyr?'<span class="stag">📝</span>':''
+    }${s.hasCh?'<span class="stag">📑</span>':''
+    }${s.hasWv?'<span class="stag">〰</span>':''}</div>
+    <div class="sr-dur">${fmtT(s.dur)}</div>`;
+    row.addEventListener('click',()=>selectSong(s.i));
+    list.appendChild(row);
+  });
+  $('container-card').style.display='block';
+  $('reset-btn').style.display='inline-block';
+  $('dz').classList.add('hidden');
+  log(`Loaded: "${con.theme||fn}" — ${songs.length} song(s)`,'ok');
+}
+
+function selectSong(idx){
+  document.querySelectorAll('.sr').forEach(r=>r.classList.remove('active','playing'));
+  const row=document.querySelector(`[data-i="${idx}"]`);if(row)row.classList.add('active');
+  S.idx=idx;const s=S.songs[idx];if(!s)return;
+  $('pb-name').textContent=s.name;$('pb-fmt').textContent=s.fmt||'RAW';
+  $('pb-sub').textContent=[s.sr?(s.sr/1000).toFixed(1)+'kHz':'',s.ch?(s.ch===2?'Stereo':'Mono'):'',fmtB(s.size)].filter(Boolean).join(' · ');
+  $('pb-d').textContent=fmtT(s.dur);$('player-bar').style.display='flex';
+  $('pb-prog-bar').value=0;$('pb-t').textContent='0:00';$('btn-play').textContent='⏳';
+  drawWaveform(s);showInfo(s);
+  if(s.enc){log(`⚠ "${s.name}" is encrypted`,'warn');$('btn-play').textContent='🔒';return}
+  playSong(s);
+}
+
+function showInfo(s){
+  const g=$('ig');g.innerHTML='';
+  const add=(l,v)=>{if(!v||v==='—'||v==='')return;const d=document.createElement('div');d.className='ig-item';d.innerHTML=`<label>${l}</label><value>${v}</value>`;g.appendChild(d)};
+  add('UUID',s.uuid);add('Format',s.fmt);add('Size',fmtB(s.size));
+  add('Byte Offset',s.offset.toLocaleString()+' B');add('CRC-32','0x'+s.crc.toString(16).toUpperCase().padStart(8,'0'));
+  add('BPM',s.bpm>0?s.bpm.toFixed(2):'');add('Key',s.key<12?KEY[s.key]:'');add('Mood',moodS(s.mood));
+  add('Sample Rate',s.sr>0?s.sr+' Hz':'');add('Channels',s.ch>0?(s.ch===2?'Stereo':'Mono'):'');
+  add('Bitrate',s.br>0?s.br+' kbps':'');add('Duration',fmtT(s.dur));
+  add('Encryption',s.enc?'AES-256-GCM':'None');add('Lyrics',s.hasLyr?'✅ Embedded':'');
+  add('Chapters',s.hasCh?`✅ ${s.chCt}`:'');add('Waveform',s.hasWv?`✅ ${s.wvSz} samples`:'');
+  $('info-wrap').style.display='block';
+}
+
+function drawWaveform(s){
+  $('wv-wrap').style.display='block';$('wv-name').textContent=s.name;
+  const cv=$('wv-canvas');cv.width=cv.offsetWidth||800;cv.height=52;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  if(s.hasWv&&s.wvOff>0&&S.buf){
+    try{
+      const cnt=Math.min(s.wvSz,2048);const wf=new Float32Array(S.buf,s.wvOff,cnt);
+      ctx.fillStyle='#161625';ctx.fillRect(0,0,W,H);
+      const bw=W/cnt;
+      for(let i=0;i<cnt;i++){const h=Math.max(2,wf[i]*H);
+        ctx.fillStyle=`hsl(${260+i/cnt*80},70%,${50+wf[i]*25}%)`;
+        ctx.fillRect(i*bw,(H-h)/2,Math.max(1,bw-1),h)}
+      $('wv-info').textContent=`${s.wvSz} samples embedded`;return;
+    }catch(_){}
+  }
+  if(!S.buf||s.offset===0||s.enc){
+    ctx.fillStyle='#161625';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#1e1e35';ctx.fillRect(W/2-60,H/2-1,120,2);
+    $('wv-info').textContent=s.enc?'Encrypted':'No waveform data';return;
+  }
+  try{
+    const audio=new Uint8Array(S.buf,s.offset,s.size);const nb=Math.min(W,300);const st=Math.floor(audio.length/nb);const bars=[];
+    for(let i=0;i<nb;i++){let sum=0,n=0;for(let j=i*st;j<i*st+st&&j+1<audio.length;j+=2){const sv=((audio[j+1]<<8)|audio[j])/32768;sum+=sv*sv;n++}bars.push(n>0?Math.sqrt(sum/n):0)}
+    ctx.fillStyle='#161625';ctx.fillRect(0,0,W,H);
+    const bw=W/bars.length;
+    for(let i=0;i<bars.length;i++){const h=Math.max(2,bars[i]*H*3);ctx.fillStyle=`hsl(${260+i/bars.length*80},70%,55%)`;ctx.fillRect(i*bw,(H-h)/2,Math.max(1,bw-1),h)}
+    $('wv-info').textContent='Computed from raw bytes';
+  }catch(e){log('Waveform error: '+e.message,'warn')}
+}
+
+async function playSong(s){
+  if(S.actx){S.actx.close();S.actx=null;S.src=null}
+  S.pauseAt=0;S.startAt=0;
+  try{
+    S.actx=new(window.AudioContext||window.webkitAudioContext)();
+    const slice=S.buf.slice(s.offset,s.offset+s.size);
+    const ab=await S.actx.decodeAudioData(slice);
+    const src=S.actx.createBufferSource();src.buffer=ab;src.connect(S.actx.destination);
+    src.start(0);S.startAt=S.actx.currentTime;S.src=src;S.cbuf=ab;
+    $('btn-play').textContent='⏸';$('pb-d').textContent=fmtT(ab.duration*1000);
+    const row=document.querySelector(`[data-i="${s.i}"]`);if(row)row.classList.add('playing');
+    log(`▶ Playing: "${s.name}" (${fmtT(ab.duration*1000)})`,'ok');
+    const tick=setInterval(()=>{
+      if(!S.actx||S.actx.state==='closed'){clearInterval(tick);return}
+      const el=S.actx.currentTime-S.startAt;
+      $('pb-prog-bar').value=Math.min((el/ab.duration)*100,100);$('pb-t').textContent=fmtT(el*1000);
+    },200);
+    src.onended=()=>{clearInterval(tick);$('btn-play').textContent='▶';$('pb-prog-bar').value=100;
+      if(row)row.classList.remove('playing');log(`⏹ Finished: "${s.name}"`,'ok');
+      if(S.idx<S.songs.length-1)setTimeout(()=>selectSong(S.idx+1),500)};
+  }catch(e){$('btn-play').textContent='▶';log(`⚠ Decode failed: ${e.message} (format: ${s.fmt})`,'warn')}
+}
+
+$('btn-play').addEventListener('click',()=>{
+  if(S.idx<0&&S.songs.length>0){selectSong(0);return}
+  const s=S.songs[S.idx];if(!s||s.enc)return;
+  if(S.actx?.state==='running'){S.pauseAt=S.actx.currentTime-S.startAt;S.actx.suspend();$('btn-play').textContent='▶'}
+  else if(S.actx?.state==='suspended'){S.actx.resume();$('btn-play').textContent='⏸'}
+  else playSong(s);
+});
+$('btn-prev').addEventListener('click',()=>{if(S.idx>0)selectSong(S.idx-1)});
+$('btn-next').addEventListener('click',()=>{if(S.idx<S.songs.length-1)selectSong(S.idx+1)});
+$('pb-prog-bar').addEventListener('click',e=>{
+  if(!S.actx||!S.cbuf)return;
+  S.pauseAt=e.offsetX/$('pb-prog-bar').offsetWidth*S.cbuf.duration;
+  if(S.src)try{S.src.stop()}catch(_){}
+  playSong(S.songs[S.idx]);
+});
+
+async function loadFile(file){
+  log(`📂 Loading: ${file.name} (${fmtB(file.size)})`,'inf');
+  const buf=await file.arrayBuffer();S.buf=buf;
+  const data=parseOucs(buf,file.name);if(!data)return;
+  S.songs=data.songs;renderPlaylist(data,file.name);
+}
+const dz=$('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+$('fi').addEventListener('change',e=>{const f=e.target.files[0];if(f)loadFile(f)});
+
+function resetPlayer(){
+  if(S.actx){S.actx.close();S.actx=null}
+  Object.assign(S,{songs:[],buf:null,idx:-1,cbuf:null,pauseAt:0});
+  $('container-card').style.display='none';$('player-bar').style.display='none';
+  $('wv-wrap').style.display='none';$('info-wrap').style.display='none';
+  $('reset-btn').style.display='none';dz.classList.remove('hidden');$('fi').value='';
+}
+
+/* ── Creator ───────────────────────────────────────────── */
+let crSongs=[];
+const CRC32T=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC32T[(c^b[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function uuid16(){const b=new Uint8Array(16);crypto.getRandomValues(b);b[6]=(b[6]&0x0F)|0x40;b[8]=(b[8]&0x3F)|0x80;return b}
+function wU32(a,o,v){a[o]=v&0xFF;a[o+1]=(v>>8)&0xFF;a[o+2]=(v>>16)&0xFF;a[o+3]=(v>>24)&0xFF;return o+4}
+function wU64(a,o,v){wU32(a,o,v&0xFFFFFFFF);wU32(a,o+4,Math.floor(v/0x100000000)&0xFFFFFFFF);return o+8}
+function wF32(a,o,v){const t=new Float32Array(1);t[0]=v;const b=new Uint8Array(t.buffer);a[o]=b[0];a[o+1]=b[1];a[o+2]=b[2];a[o+3]=b[3];return o+4}
+function wCS(a,o,s,m){const e=new TextEncoder().encode(s||'');const l=Math.min(e.length,m-1);a.set(e.subarray(0,l),o);a.fill(0,o+l,o+m);return o+m}
+function align(n,b){return Math.ceil(n/b)*b}
+function guessF(f){const e=f.name.split('.').pop().toUpperCase();return({'MP3':'MP3 ','WAV':'WAV ','FLAC':'FLAC','OGG':'OGG ','AAC':'AAC ','OPUS':'OPUS','M4A':'AAC '})[e]||'MP3 '}
+
+const cdrop=$('creator-drop');
+async function handleCreatorFiles(fl){
+  for(const f of fl){
+    if(!f.type.startsWith('audio/')&&!f.name.match(/\.(mp3|wav|flac|ogg|aac|opus|m4a)$/i))continue;
+    const buf=await f.arrayBuffer();
+    crSongs.push({file:f,name:f.name.replace(/\.[^.]+$/,''),buf,fmt:guessF(f)});
+  }
+  renderCreatorList();
+}
+cdrop.addEventListener('dragover',e=>{e.preventDefault();cdrop.classList.add('drag-over')});
+cdrop.addEventListener('dragleave',()=>cdrop.classList.remove('drag-over'));
+cdrop.addEventListener('drop',e=>{e.preventDefault();cdrop.classList.remove('drag-over');handleCreatorFiles(e.dataTransfer.files)});
+$('ci').addEventListener('change',e=>handleCreatorFiles(e.target.files));
+
+function renderCreatorList(){
+  const el=$('cr-list');
+  if(crSongs.length===0){el.style.display='none';cdrop.classList.remove('hidden');$('add-more-btn').style.display='none';$('cr-meta').classList.remove('show');$('exp-btn').disabled=true;return}
+  el.style.display='block';cdrop.classList.add('hidden');$('add-more-btn').style.display='block';$('cr-meta').classList.add('show');$('exp-btn').disabled=false;
+  el.innerHTML='<div class="cr-list">'+crSongs.map((s,i)=>`
+    <div class="cr-item">
+      <div class="cr-num">${i+1}</div>
+      <div class="cr-info"><div class="cr-name">${s.name}</div><div class="cr-size">${s.fmt.trim()} · ${fmtB(s.buf.byteLength)}</div></div>
+      <button class="cr-del" onclick="removeCr(${i})">✕</button>
+    </div>`).join('')+'</div>';
+}
+function removeCr(i){crSongs.splice(i,1);renderCreatorList()}
+
+async function exportOucs(){
+  if(!crSongs.length)return;
+  const name=$('cr-name').value.trim()||'My Playlist';
+  const desc=$('cr-desc').value.trim()||'';
+  const ts=Math.floor(Date.now()/1000);
+  const HSIZE=44,MNMAX=256,MDMAX=1024,MUMAX=512,ISIZE=512;
+  const metaBlockSize=MNMAX+MDMAX+4+MUMAX+8+16+4+4;
+  const metaOff=HSIZE,afterMeta=metaOff+metaBlockSize;
+  const idxOff=align(afterMeta,512),idxSz=crSongs.length*ISIZE;
+  const dataStart=align(idxOff+idxSz,512);
+  let totalAudio=0;for(const s of crSongs)totalAudio+=align(s.buf.byteLength,512);
+  const total=dataStart+totalAudio;
+  const buf=new Uint8Array(total);buf.fill(0);
+  buf[0]=0x4F;buf[1]=0x55;buf[2]=0x43;buf[3]=0x53;
+  let o=4;o++;o++;o=o+2;// version 1.0, flags 0, reserved 0
+  buf[4]=1;buf[5]=0;
+  o=8;o=wU32(buf,o,crSongs.length);o=wU64(buf,o,metaOff);o=wU64(buf,o,idxOff);o=wU64(buf,o,0);o=wU64(buf,o,0);
+  o=metaOff;o=wCS(buf,o,name,MNMAX);o=wCS(buf,o,desc,MDMAX);o=wU32(buf,o,0);o=wCS(buf,o,'',MUMAX);o=wU64(buf,o,ts);
+  const au=uuid16();buf.set(au,o);o+=16;o=wCS(buf,o,'',16);o=wU32(buf,o,0);
+  let dataOff=dataStart;
+  for(let i=0;i<crSongs.length;i++){
+    const s=crSongs[i];const audio=new Uint8Array(s.buf);const chk=crc32(audio);
+    const uid=uuid16();let ie=idxOff+i*ISIZE;
+    buf.set(uid,ie);ie+=16;ie=wCS(buf,ie,s.name,64);ie=wCS(buf,ie,'',256);
+    ie=wU64(buf,ie,dataOff);ie=wU64(buf,ie,audio.length);
+    const fm=s.fmt.padEnd(4,' ').substring(0,4);for(let k=0;k<4;k++)buf[ie+k]=fm.charCodeAt(k)||0x20;ie+=4;
+    ie=wU32(buf,ie,chk);for(let k=0;k<64;k++)buf[ie+k]=0;ie+=64;
+    ie=wF32(buf,ie,0);buf[ie++]=255;buf[ie++]=0;buf[ie++]=0x65;buf[ie++]=0x6E;buf[ie++]=0;buf[ie++]=0;
+    for(let k=0;k<16;k++)buf[ie+k]=0;ie+=16;buf[ie++]=0;for(let k=0;k<12;k++)buf[ie+k]=0;ie+=12;
+    ie=wU32(buf,ie,0);ie=wU32(buf,ie,0);ie+=2;ie+=2;buf[ie++]=i+1;
+    buf.set(audio,dataOff);dataOff+=align(audio.length,512);
+  }
+  const safe=name.toLowerCase().replace(/[^a-z0-9_-]/g,'_');
+  const blob=new Blob([buf],{type:'application/x-oucs'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=safe+'.oucs';a.click();
+  URL.revokeObjectURL(a.href);
+  log(`✅ Downloaded: ${safe}.oucs (${fmtB(buf.byteLength)}) — open in Player tab to test!`,'ok');
+  switchTab('player');
+}
+
+/* ── Keyboard ──────────────────────────────────────────── */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();$('btn-play').click()}
+  if(e.code==='ArrowRight')$('btn-next').click();
+  if(e.code==='ArrowLeft')$('btn-prev').click();
+});
+</script>
+</body>
+</html>
