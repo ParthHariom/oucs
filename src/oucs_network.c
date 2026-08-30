@@ -17,6 +17,11 @@
  * License: MIT
  */
 
+/* Must be first — exposes getaddrinfo, strdup on Linux/glibc */
+#ifndef _GNU_SOURCE
+#  define _GNU_SOURCE
+#endif
+
 #include "oucs_internal.h"
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +38,8 @@ extern void oucs_hooks_fire_chunk_read(const OucsHook *local_hooks, uint32_t loc
   typedef SOCKET oucs_socket_t;
   #define OUCS_INVALID_SOCKET INVALID_SOCKET
   #define oucs_socket_close(s) closesocket(s)
+  static int read(SOCKET s, void *buf, int n) { return recv(s, (char*)buf, n, 0); }
+  static int write(SOCKET s, const void *buf, int n) { return send(s, (const char*)buf, n, 0); }
 #else
   #include <sys/types.h>
   #include <sys/socket.h>
@@ -177,6 +184,7 @@ int oucs_http_range_get(const char *url,
 #ifdef _WIN32
     send(sock, request, req_len, 0);
 #else
+    /* Send request */
     (void)write(sock, request, req_len);
 #endif
 
@@ -188,11 +196,7 @@ int oucs_http_range_get(const char *url,
     uint8_t recv_buf[4096];
     int n;
     while (1) {
-#ifdef _WIN32
-        n = recv(sock, (char *)recv_buf, sizeof(recv_buf), 0);
-#else
         n = (int)read(sock, recv_buf, sizeof(recv_buf));
-#endif
         if (n <= 0) break;
         if (pos + (size_t)n >= cap) {
             cap = cap * 2 + (size_t)n;
